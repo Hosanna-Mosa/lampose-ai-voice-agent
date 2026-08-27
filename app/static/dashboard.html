@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAMPOSE Voice AI</title>
+<style>
+  :root { --bg:#0e1116; --card:#171b22; --line:#262c36; --text:#e8ebef;
+          --muted:#8b94a1; --accent:#f59e0b; --green:#22c55e; --red:#ef4444; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text);
+         font:14px/1.5 -apple-system,'Segoe UI',Roboto,'Noto Sans Telugu',sans-serif; }
+  header { display:flex; align-items:center; gap:16px; padding:14px 22px;
+           border-bottom:1px solid var(--line); }
+  header h1 { font-size:17px; letter-spacing:.5px; }
+  header h1 span { color:var(--accent); }
+  nav { display:flex; gap:6px; margin-left:auto; }
+  nav button { background:none; border:1px solid transparent; color:var(--muted);
+               padding:7px 14px; border-radius:8px; cursor:pointer; font-size:14px; }
+  nav button.active { color:var(--text); border-color:var(--line); background:var(--card); }
+  main { max-width:1150px; margin:0 auto; padding:22px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+           gap:12px; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card .num { font-size:26px; font-weight:700; }
+  .card .lbl { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px; margin-bottom:16px; }
+  .panel h2 { font-size:14px; margin-bottom:12px; color:var(--muted);
+              text-transform:uppercase; letter-spacing:.6px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  input, select { background:#0d1015; border:1px solid var(--line); color:var(--text);
+                  border-radius:8px; padding:8px 10px; font-size:14px; }
+  input::placeholder { color:#5c6673; }
+  button.btn { background:var(--accent); color:#111; border:0; border-radius:8px;
+               padding:8px 14px; font-weight:600; cursor:pointer; font-size:14px; }
+  button.btn.secondary { background:#242b36; color:var(--text); }
+  button.btn.danger { background:var(--red); color:#fff; }
+  button.btn:disabled { opacity:.5; cursor:default; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase;
+       letter-spacing:.5px; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px;
+         font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+  .tag.new,.tag.queued { background:#1e3a5f; color:#7cc0ff; }
+  .tag.hot { background:#3f1d1d; color:#ff8f8f; }
+  .tag.warm { background:#3f321d; color:#ffce7c; }
+  .tag.cold,.tag.contacted { background:#1d303f; color:#8fd0ff; }
+  .tag.lost,.tag.failed,.tag.dnc { background:#2a2a2a; color:#9aa3ae; }
+  .tag.dialing,.tag.in_call { background:#173926; color:#6ee7a0; }
+  .tag.callback,.tag.retry { background:#332144; color:#d3a6ff; }
+  .tag.onboarding_started { background:#173926; color:#6ee7a0; }
+  .muted { color:var(--muted); }
+  .transcript { max-height:420px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  .bubble { max-width:75%; padding:8px 12px; border-radius:12px; font-size:14px; }
+  .bubble.user { background:#20304a; align-self:flex-start; }
+  .bubble.assistant { background:#31394a; align-self:flex-end; }
+  .toast { position:fixed; bottom:20px; right:20px; background:#242b36; color:var(--text);
+           padding:10px 16px; border-radius:10px; border:1px solid var(--line);
+           opacity:0; transition:.3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .switch { position:relative; width:46px; height:26px; }
+  .switch input { display:none; }
+  .slider { position:absolute; inset:0; background:#333b47; border-radius:20px;
+            cursor:pointer; transition:.2s; }
+  .slider:before { content:""; position:absolute; width:20px; height:20px; left:3px; top:3px;
+                   background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider { background:var(--green); }
+  .switch input:checked + .slider:before { transform:translateX(20px); }
+  .hidden { display:none; }
+  a { color:#7cc0ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>LAM<span>POSE</span> · Voice AI</h1>
+  <nav>
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="leads">Leads</button>
+    <button data-tab="calls">Calls</button>
+    <button data-tab="recordings">Recordings</button>
+    <button data-tab="test">Test&nbsp;Call</button>
+  </nav>
+</header>
+<main>
+
+<!-- ============ OVERVIEW ============ -->
+<section id="tab-overview">
+  <div class="cards" id="statCards"></div>
+  <div class="panel">
+    <h2>Outbound Dialer</h2>
+    <div class="row">
+      <label class="switch"><input type="checkbox" id="dialerToggle">
+        <span class="slider"></span></label>
+      <span id="dialerInfo" class="muted"></span>
+    </div>
+    <p class="muted" style="margin-top:8px">When ON, the system automatically calls leads
+      with status <b>new / retry / callback-due</b> during calling hours.</p>
+  </div>
+</section>
+
+<!-- ============ LEADS ============ -->
+<section id="tab-leads" class="hidden">
+  <div class="panel">
+    <h2>Add lead</h2>
+    <div class="row">
+      <input id="l_phone" placeholder="Phone (10-digit or +91…)" style="width:170px">
+      <input id="l_name" placeholder="Owner name" style="width:150px">
+      <input id="l_prop" placeholder="Property name" style="width:170px">
+      <select id="l_type">
+        <option value="">Type…</option><option>PG</option><option>hostel</option>
+        <option>to-let</option><option>hotel</option>
+      </select>
+      <input id="l_area" placeholder="Area / city" style="width:140px">
+      <button class="btn" onclick="addLead()">Add</button>
+      <span style="flex:1"></span>
+      <label class="btn secondary" style="cursor:pointer">Upload CSV
+        <input type="file" id="csvFile" accept=".csv" style="display:none"
+               onchange="uploadCSV(this)">
+      </label>
+    </div>
+    <p class="muted" style="margin-top:6px">CSV header: <code>phone,name,property_name,property_type,area,notes</code> (phone required)</p>
+  </div>
+  <div class="panel">
+    <h2 class="row">Leads
+      <select id="leadFilter" onchange="loadLeads()" style="margin-left:10px">
+        <option value="">all statuses</option>
+        <option>new</option><option>retry</option><option>callback</option>
+        <option>hot</option><option>warm</option><option>cold</option>
+        <option>onboarding_started</option><option>contacted</option>
+        <option>lost</option><option>failed</option><option>dnc</option>
+      </select>
+      <button class="btn secondary" style="margin-left:auto" onclick="loadLeads()">Refresh</button>
+    </h2>
+    <div style="overflow-x:auto"><table id="leadsTable">
+      <thead><tr><th>Owner / Phone</th><th>Property</th><th>Status</th>
+      <th>Attempts</th><th>Last outcome / notes</th><th></th></tr></thead>
+      <tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============ CALLS ============ -->
+<section id="tab-calls" class="hidden">
+  <div class="panel">
+    <h2 class="row">Recent calls
+      <button class="btn secondary" style="margin-left:auto" onclick="loadCalls()">Refresh</button></h2>
+    <div style="overflow-x:auto"><table id="callsTable">
+      <thead><tr><th>When (IST)</th><th>Phone</th><th>Dir</th><th>Status</th>
+      <th>Dur</th><th>Score</th><th>Outcome</th><th>Summary</th><th></th></tr></thead>
+      <tbody></tbody></table></div>
+  </div>
+  <div class="panel hidden" id="transcriptPanel">
+    <h2 class="row">Transcript <span id="tSid" class="muted"></span>
+      <button class="btn secondary" style="margin-left:auto"
+        onclick="document.getElementById('transcriptPanel').classList.add('hidden')">Close</button></h2>
+    <div class="transcript" id="transcriptBox"></div>
+  </div>
+</section>
+
+<!-- ============ RECORDINGS ============ -->
+<section id="tab-recordings" class="hidden">
+  <div class="panel">
+    <h2 class="row">Call recordings <span id="recCount" class="muted"></span>
+      <button class="btn secondary" style="margin-left:auto" onclick="loadRecordings()">Refresh</button></h2>
+    <div id="recList" style="display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+</section>
+
+<!-- ============ TEST ============ -->
+<section id="tab-test" class="hidden">
+  <div class="panel">
+    <h2>Test call — audition voices</h2>
+    <div class="row">
+      <input id="t_phone" placeholder="Your number (+91…)" style="width:170px">
+      <select id="t_voice"></select>
+      <button class="btn" onclick="testCall()">📞 Call me</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="t_prop" placeholder="Property name (e.g. Sri Sai PG)" style="width:210px">
+      <select id="t_type">
+        <option value="">Type…</option><option>PG</option><option>hostel</option>
+        <option>to-let</option><option>hotel</option>
+      </select>
+      <input id="t_area" placeholder="Area (e.g. Gachibowli)" style="width:150px">
+      <input id="t_rating" placeholder="Maps rating (4.2)" style="width:120px">
+      <input id="t_name" placeholder="Owner name" style="width:130px">
+    </div>
+    <p class="muted" style="margin-top:8px">Property fields power the personalized opening:
+      "మీరు <b>Sri Sai PG</b> owner గారేనా?" → "మీ PG ని Google Maps లో చూశాను…".
+      Leave empty to hear the generic opening. Female voices: kavya, shreya, pooja, ritu ·
+      Male: shubh, gokul, aditya, rohan.</p>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3200); }
+async function api(path, opts={}){
+  const r = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
+  if(!r.ok){ toast('Error: '+(await r.text()).slice(0,120)); throw new Error(path); }
+  return r.json();
+}
+/* tabs */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+  $('#tab-'+b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='overview') loadOverview();
+  if(b.dataset.tab==='leads') loadLeads();
+  if(b.dataset.tab==='calls') loadCalls();
+  if(b.dataset.tab==='recordings') loadRecordings();
+});
+/* overview */
+async function loadOverview(){
+  const s = await api('/api/stats'), d = await api('/api/dialer');
+  const by = s.leads_by_status||{};
+  const cards = [
+    ['Total leads', s.leads_total], ['Hot', by.hot||0], ['Warm', by.warm||0],
+    ['Onboarding', by.onboarding_started||0], ['Calls made', s.calls_total],
+    ['Completed', s.calls_completed], ['Active now', d.active_calls],
+  ];
+  $('#statCards').innerHTML = cards.map(c=>
+    `<div class="card"><div class="num">${c[1]}</div><div class="lbl">${c[0]}</div></div>`).join('');
+  $('#dialerToggle').checked = d.enabled;
+  $('#dialerInfo').textContent =
+    `${d.enabled?'ON':'OFF'} · hours ${d.hours} · ${d.in_hours?'within':'outside'} calling hours · ${d.active_calls}/${d.max_concurrent} active`;
+}
+$('#dialerToggle').onchange = async e=>{
+  await api('/api/dialer',{method:'POST',body:JSON.stringify({enabled:e.target.checked})});
+  loadOverview();
+};
+/* leads */
+function esc(s){ return (s??'').toString().replace(/[&<>"]/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function loadLeads(){
+  const f = $('#leadFilter').value;
+  const leads = await api('/api/leads'+(f?`?status=${f}`:''));
+  $('#leadsTable tbody').innerHTML = leads.map(l=>`<tr>
+    <td><b>${esc(l.name)||'—'}</b><br><span class="muted">${esc(l.phone)}</span></td>
+    <td>${esc(l.property_name)||'—'}<br><span class="muted">${esc(l.property_type)} ${esc(l.area)}</span></td>
+    <td><span class="tag ${esc(l.status)}">${esc(l.status)}</span>
+        ${l.reason_code?`<br><span class="muted">${esc(l.reason_code)}</span>`:''}</td>
+    <td>${l.attempts??0}</td>
+    <td style="max-width:280px">${esc(l.last_outcome)||''}
+        ${l.callback_note?`<br><span class="muted">📅 ${esc(l.callback_note)}</span>`:''}
+        ${l.wants_whatsapp?`<br><span class="muted">💬 wants WhatsApp</span>`:''}</td>
+    <td><button class="btn secondary" onclick="callNow('${l._id}')">Call now</button></td>
+  </tr>`).join('') || '<tr><td colspan="6" class="muted">No leads yet</td></tr>';
+}
+async function addLead(){
+  const body = { phone:$('#l_phone').value, name:$('#l_name').value,
+    property_name:$('#l_prop').value, property_type:$('#l_type').value,
+    area:$('#l_area').value, source:'manual' };
+  await api('/api/leads',{method:'POST',body:JSON.stringify(body)});
+  toast('Lead saved'); ['l_phone','l_name','l_prop','l_area'].forEach(i=>$('#'+i).value='');
+  loadLeads();
+}
+async function uploadCSV(input){
+  const fd = new FormData(); fd.append('file', input.files[0]);
+  const r = await fetch('/api/leads/csv',{method:'POST',body:fd});
+  const j = await r.json(); toast(`CSV: ${j.added} added, ${j.skipped} skipped`);
+  input.value=''; loadLeads();
+}
+async function callNow(id){
+  if(!confirm('Call this lead now?')) return;
+  const j = await api(`/api/leads/${id}/call`,{method:'POST'});
+  toast('Dialing… '+j.call_sid); loadLeads();
+}
+/* calls */
+function scoreChip(sc){
+  if(!sc || sc.score==null) return '';
+  const s = Number(sc.score);
+  const cls = s>=8?'onboarding_started':(s>=5?'warm':'lost');
+  const flag = (sc.compliance_ok===false)?' ⚠️':'';
+  return `<span class="tag ${cls}" title="opening:${sc.opening_followed} compliance:${sc.compliance_ok} sentiment:${esc(sc.owner_sentiment||'')}">${s}/10${flag}</span>`;
+}
+function ist(t){ return t? new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',
+  day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''; }
+async function loadCalls(){
+  const calls = await api('/api/calls');
+  $('#callsTable tbody').innerHTML = calls.map(c=>`<tr>
+    <td>${ist(c.started_at)}</td><td>${esc(c.phone)}</td><td>${esc(c.direction)}</td>
+    <td>${esc(c.status)}</td><td>${c.duration?c.duration+'s':''}</td>
+    <td>${scoreChip(c.scorecard)}</td>
+    <td style="max-width:170px">${esc(c.outcome)}</td>
+    <td style="max-width:290px" class="muted">${esc(c.summary)}</td>
+    <td><button class="btn secondary" onclick="showTranscript('${c.call_sid}')">Text</button>
+        ${c.recording?`<a class="btn secondary" style="text-decoration:none" href="/api/recordings/${c.call_sid}" target="_blank" title="Play recording">▶</a>`:''}</td>
+  </tr>`).join('') || '<tr><td colspan="9" class="muted">No calls yet</td></tr>';
+}
+async function showTranscript(sid){
+  const c = await api('/api/calls/'+sid);
+  $('#tSid').textContent = sid;
+  $('#transcriptBox').innerHTML = (c.transcript||[]).map(m=>
+    `<div class="bubble ${m.role}">${esc(m.content)}</div>`).join('')
+    || '<span class="muted">No transcript captured.</span>';
+  $('#transcriptPanel').classList.remove('hidden');
+  $('#transcriptPanel').scrollIntoView({behavior:'smooth'});
+}
+/* recordings */
+function fmtDur(s){ if(s==null) return ''; const m=Math.floor(s/60); return `${m}:${String(s%60).padStart(2,'0')}`; }
+async function loadRecordings(){
+  const recs = await api('/api/recordings');
+  $('#recCount').textContent = `(${recs.length})`;
+  $('#recList').innerHTML = recs.map(r=>`
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <b>${esc(r.property_name)||esc(r.lead_name)||'Unknown'}</b>
+          <span class="muted"> ${esc(r.phone)} · ${esc(r.direction)} · ${ist(r.started_at)}
+          · ${fmtDur(r.duration)} min · ${r.size_kb} KB</span>
+          ${scoreChip(r.scorecard)}
+        </div>
+        <div class="row">
+          <button class="btn secondary" onclick="setSpeed('${r.call_sid}',1)">1×</button>
+          <button class="btn secondary" onclick="setSpeed('${r.call_sid}',1.5)">1.5×</button>
+          <button class="btn secondary" onclick="setSpeed('${r.call_sid}',2)">2×</button>
+          <a class="btn" style="text-decoration:none"
+             href="/api/recordings/${r.call_sid}" download="${r.call_sid}.wav">⬇ Download</a>
+          <button class="btn secondary" onclick="showTranscript('${r.call_sid}');
+            document.querySelector('nav button[data-tab=calls]').click();">Transcript</button>
+        </div>
+      </div>
+      <audio id="au-${r.call_sid}" controls preload="none"
+             style="width:100%;margin-top:10px"
+             src="/api/recordings/${r.call_sid}"></audio>
+      ${r.summary?`<p class="muted" style="margin-top:8px">${esc(r.summary)}</p>`:''}
+      <p class="muted" style="margin-top:4px;font-size:.78rem">Stereo: owner = left channel · agent = right channel</p>
+    </div>`).join('') || '<span class="muted">No recordings yet — make a call first.</span>';
+}
+function setSpeed(sid, rate){
+  const a = document.getElementById('au-'+sid);
+  if(a){ a.playbackRate = rate; if(a.paused) a.play(); toast(`Playback ${rate}×`); }
+}
+/* test */
+async function initTest(){
+  const cfg = await api('/api/config');
+  $('#t_voice').innerHTML = cfg.voices.map(v=>
+    `<option ${v===cfg.default_voice?'selected':''}>${v}</option>`).join('');
+}
+async function testCall(){
+  const j = await api('/api/test-call',{method:'POST',
+    body:JSON.stringify({phone:$('#t_phone').value, voice:$('#t_voice').value,
+      property_name:$('#t_prop').value, property_type:$('#t_type').value,
+      area:$('#t_area').value, rating:$('#t_rating').value, name:$('#t_name').value})});
+  toast(`Calling you with voice "${j.voice}"…`);
+}
+loadOverview(); initTest();
+setInterval(()=>{ if(!$('#tab-overview').classList.contains('hidden')) loadOverview(); }, 15000);
+</script>
+</body>
+</html>

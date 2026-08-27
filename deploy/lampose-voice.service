@@ -1,0 +1,22 @@
+[Unit]
+Description=LAMPOSE Voice AI Agent
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lampose
+WorkingDirectory=/opt/lampose-voice
+EnvironmentFile=/opt/lampose-voice/.env
+ExecStart=/opt/lampose-voice/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 7860
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+# hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

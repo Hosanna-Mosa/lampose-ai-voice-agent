@@ -1,0 +1,10 @@
+pipecat-ai[anthropic,sarvam,silero,runner,rnnoise]==1.7.0
+twilio~=9.6
+motor~=3.6
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-dotenv>=1.0
+python-multipart>=0.0.9
+aiohttp>=3.10
+loguru>=0.7
+anthropic>=0.49

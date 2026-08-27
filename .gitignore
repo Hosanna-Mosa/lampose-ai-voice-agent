@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+recordings/
+*.log
+logs/
+.env.local
+filler_cache/
+.DS_Store
+test voices/
