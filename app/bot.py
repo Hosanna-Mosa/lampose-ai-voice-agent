@@ -498,7 +498,8 @@ async def run_call(runner_args: RunnerArguments):
     ]
     if config.EMOTION_ENABLED:
         pipeline_stages.append(EmotionMonitor(context, loud_rms=config.EMOTION_LOUD_RMS))
-    audiobuffer = AudioBufferProcessor(num_channels=2) if config.RECORD_CALLS else None
+    audiobuffer = (AudioBufferProcessor(num_channels=2, auto_start_recording=True)
+                   if config.RECORD_CALLS else None)
     bot_logger = BotSpeechLogger(turn_times)
     pipeline_stages += [
         UserSpeechLogger(turn_times),
@@ -621,8 +622,7 @@ async def run_call(runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         t_live = time.time()
         step("18-CALL-LIVE", f"audio stream connected (direction={direction})")
-        if audiobuffer is not None:
-            await audiobuffer.start_recording()
+        # (recording auto-starts with the processor — no pre-start race)
         if state.lead_id:
             await db.update_lead(state.lead_id, {"status": "in_call"})
         await db.update_call(call_sid, {"status": "in-progress"})
@@ -651,10 +651,13 @@ async def run_call(runner_args: RunnerArguments):
                 step("18-INITIAL-GREETING",
                      f"cached greeting playing (call_live_to_greeting="
                      f"{time.time() - t_live:.2f}s): {greeting}")
+                # Through the WORKER QUEUE, not a direct push: queued frames
+                # are processed strictly after StartFrame, so they cannot be
+                # dropped by the not-started guard (the VPS silent-greeting bug).
                 CHUNK = 320
-                for i in range(0, len(clip), CHUNK):
-                    await bot_logger.push_frame(
-                        OutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1))
+                frames = [OutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1)
+                          for i in range(0, len(clip), CHUNK)]
+                await worker.queue_frames(frames)
                 turn_times.startup["FIRST_AUDIO_SENT"] = time.time()
                 step("20-BOT-SAID", f"{greeting}  (pre-generated clip)")
             else:
