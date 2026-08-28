@@ -54,10 +54,14 @@ rsync -a --delete --exclude venv --exclude .git "$SRC_DIR"/ "$APP_DIR"/ 2>/dev/n
 chown -R lampose:lampose "$APP_DIR"
 chmod 600 "$APP_DIR/.env" || true
 
+echo "==> NLTK tokenizer data (system-wide — the sandboxed service user cannot download it)"
+mkdir -p /usr/local/share/nltk_data
+
 echo "==> Python venv + dependencies (takes a few minutes)"
 sudo -u lampose $PYBIN -m venv "$APP_DIR/venv"
 sudo -u lampose "$APP_DIR/venv/bin/pip" install --upgrade pip wheel
 sudo -u lampose "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+"$APP_DIR/venv/bin/python" -m nltk.downloader -d /usr/local/share/nltk_data punkt_tab
 
 # ---------- systemd ----------
 cp "$APP_DIR/deploy/lampose-voice.service" /etc/systemd/system/
