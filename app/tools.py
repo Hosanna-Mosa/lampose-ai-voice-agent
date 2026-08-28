@@ -275,6 +275,7 @@ def build_tools(state: CallState) -> list:
                 # before it (goodbye streamed ahead of the tool call)
                 if tt.last_bot_audio_end >= t0 - 2.0:
                     break
+            await asyncio.sleep(0.6)  # let the transport's paced buffer flush fully
             step("TOOL-END-CALL-COMPLETE",
                  f"goodbye audio drained ({time.time() - t0:.1f}s) — closing now")
         try:
