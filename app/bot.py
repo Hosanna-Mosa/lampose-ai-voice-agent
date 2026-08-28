@@ -24,6 +24,7 @@ from pipecat.frames.frames import (
     InputAudioRawFrame,
     LLMFullResponseStartFrame,
     OutputAudioRawFrame,
+    SpeechOutputAudioRawFrame,
     TTSAudioRawFrame,
     LLMRunFrame,
     LLMTextFrame,
@@ -227,6 +228,53 @@ class EmotionMonitor(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+class SentMediaMonitor(FrameProcessor):
+    """Placed AFTER the output transport: frames arriving here were actually
+    written to the Twilio websocket (real-time paced). Emits honest
+    media-delivery events (AUDIO-FIRST-MEDIA / AUDIO-COMPLETE per utterance)
+    and the redesigned startup timing. 'Sent' — not 'heard'; Twilio Media
+    Streams gives no playback acknowledgment, so we never claim one."""
+
+    def __init__(self, turn_times):
+        super().__init__()
+        self._tt = turn_times
+        self._uid = 0
+        self._frames = 0
+        self._startup_done = False
+
+    async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+        su = getattr(self._tt, "startup", None) or {}
+        if isinstance(frame, BotStartedSpeakingFrame):
+            self._uid += 1
+            self._frames = 0
+            if "FIRST_MEDIA_SENT" not in su:
+                su["FIRST_MEDIA_SENT"] = time.time()
+            step("AUDIO-FIRST-MEDIA", f"utterance=U{self._uid} — media flowing to Twilio")
+        elif isinstance(frame, OutputAudioRawFrame):
+            self._frames += 1
+        elif isinstance(frame, BotStoppedSpeakingFrame):
+            dur = self._frames * 0.02
+            step("AUDIO-COMPLETE", f"utterance=U{self._uid} sent={dur:.2f}s "
+                 f"({self._frames} frames)")
+            if not self._startup_done and su.get("FIRST_MEDIA_SENT"):
+                self._startup_done = True
+                def _d(a, b):
+                    return (su[b] - su[a]) if su.get(a) and su.get(b) else None
+                parts = []
+                for n, a, b in [("answered→ws", "CALL_ANSWERED", "WS_CONNECTED"),
+                                ("ws→pipeline", "WS_CONNECTED", "PIPELINE_READY"),
+                                ("pipeline→greeting_start", "PIPELINE_READY", "GREETING_PLAY_START"),
+                                ("greeting_start→first_media", "GREETING_PLAY_START", "FIRST_MEDIA_SENT"),
+                                ("answered→first_media_sent", "CALL_ANSWERED", "FIRST_MEDIA_SENT")]:
+                    v = _d(a, b)
+                    if v is not None:
+                        parts.append(f"{n} {v:.2f}s")
+                parts.append(f"first_utterance_media_duration {dur:.2f}s")
+                step("27-STARTUP-TIMING", " | ".join(parts))
+        await self.push_frame(frame, direction)
+
+
 class UserSpeechLogger(FrameProcessor):
     """[STEP 19-USER-SAID] — every final owner utterance from Sarvam STT."""
 
@@ -264,18 +312,6 @@ class BotSpeechLogger(FrameProcessor):
                 tt.mark("TTS_FIRST_AUDIO")
         elif isinstance(frame, BotStartedSpeakingFrame) and tt:
             tt.bot_speaking = True
-            su = getattr(tt, "startup", None)
-            if su and "FIRST_AUDIO_HEARD" not in su:
-                su["FIRST_AUDIO_HEARD"] = time.time()
-                stages = [("answered→ws", "CALL_ANSWERED", "WS_CONNECTED"),
-                          ("ws→pipeline", "WS_CONNECTED", "PIPELINE_READY"),
-                          ("pipeline→greeting", "PIPELINE_READY", "GREETING_PLAY_START"),
-                          ("greeting→first_audio", "GREETING_PLAY_START", "FIRST_AUDIO_HEARD"),
-                          ("answered→first_audio", "CALL_ANSWERED", "FIRST_AUDIO_HEARD")]
-                parts = [f"{n} {su[b]-su[a]:.2f}s" for n, a, b in stages
-                         if su.get(a) and su.get(b)]
-                if parts:
-                    step("27-STARTUP-TIMING", " | ".join(parts))
             if tt.suppress_next_bot_start > 0:
                 tt.suppress_next_bot_start -= 1  # filler clip, not the response
             else:
@@ -509,6 +545,7 @@ async def run_call(runner_args: RunnerArguments):
         tts,
         bot_logger,
         transport.output(),
+        SentMediaMonitor(turn_times),
     ]
     if audiobuffer is not None:
         pipeline_stages.append(audiobuffer)
@@ -568,7 +605,8 @@ async def run_call(runner_args: RunnerArguments):
         # can never interleave with or trail a real response.
         CHUNK = 320  # 20ms @ 8kHz s16 mono
         for i in range(0, len(clip), CHUNK):
-            await bot_logger.push_frame(OutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1))
+            await bot_logger.push_frame(
+                SpeechOutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1))
 
     if config.FILLER_ENABLED:
         turn_times.on_turn_complete = (
@@ -655,7 +693,7 @@ async def run_call(runner_args: RunnerArguments):
                 # are processed strictly after StartFrame, so they cannot be
                 # dropped by the not-started guard (the VPS silent-greeting bug).
                 CHUNK = 320
-                frames = [OutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1)
+                frames = [SpeechOutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1)
                           for i in range(0, len(clip), CHUNK)]
                 await worker.queue_frames(frames)
                 turn_times.startup["FIRST_AUDIO_SENT"] = time.time()
