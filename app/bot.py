@@ -4,6 +4,7 @@ post-call summarization."""
 
 import array
 import asyncio
+import difflib
 import io
 import wave
 from pathlib import Path
@@ -19,6 +20,7 @@ from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.frames.frames import (
     BotStartedSpeakingFrame,
+    InterimTranscriptionFrame,
     BotStoppedSpeakingFrame,
     FunctionCallInProgressFrame,
     InputAudioRawFrame,
@@ -275,15 +277,45 @@ class SentMediaMonitor(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+def _is_probable_echo(text: str, bot_text: str) -> bool:
+    """True when a 'user' transcript is largely a fuzzy subset of what the bot
+    itself just said — i.e. line echo of our own TTS coming back through the
+    caller's phone. Token-level fuzzy match to survive STT variance
+    (సర్/సార్) while letting genuine interruptions through."""
+    t_tokens = [w for w in text.replace("?", " ").replace(",", " ").split() if len(w) >= 2]
+    b_tokens = [w for w in bot_text.replace("?", " ").replace(",", " ").split() if len(w) >= 2]
+    if len(t_tokens) < 2 or not b_tokens:
+        return False
+    hits = 0
+    for tw in t_tokens:
+        for bw in b_tokens:
+            if difflib.SequenceMatcher(None, tw, bw).ratio() >= 0.7:
+                hits += 1
+                break
+    return hits / len(t_tokens) >= 0.6
+
+
 class UserSpeechLogger(FrameProcessor):
-    """[STEP 19-USER-SAID] — every final owner utterance from Sarvam STT."""
+    """[STEP 19-USER-SAID] — every final owner utterance from Sarvam STT.
+    Also the self-echo guard: transcripts of the bot's OWN voice echoing back
+    through the phone line are dropped before they can fake a barge-in."""
 
     def __init__(self, turn_times=None):
         super().__init__()
         self._turn_times = turn_times
 
+    def _echo_window_active(self) -> bool:
+        tt = self._turn_times
+        return bool(tt) and (tt.bot_speaking or (time.time() - tt.last_bot_audio_end) < 1.0)
+
     async def process_frame(self, frame, direction):
         await super().process_frame(frame, direction)
+        if isinstance(frame, (TranscriptionFrame, InterimTranscriptionFrame)):
+            if self._echo_window_active() and _is_probable_echo(
+                    frame.text, self._turn_times.recent_bot_text()):
+                if isinstance(frame, TranscriptionFrame):
+                    step("ECHO-GUARD", f"dropped self-echo: {frame.text}")
+                return  # swallow: no turn start, no barge-in, not in context
         if isinstance(frame, TranscriptionFrame):
             if self._turn_times:
                 self._turn_times.mark("STT_FINAL")
@@ -322,6 +354,8 @@ class BotSpeechLogger(FrameProcessor):
             tt.last_bot_audio_end = time.time()
         if isinstance(frame, TTSTextFrame):
             self._buf.append(frame.text)
+            if tt:
+                tt.note_bot_text(frame.text)
         elif isinstance(frame, TTSStoppedFrame) and self._buf:
             step("20-BOT-SAID", " ".join(t.strip() for t in self._buf if t.strip()))
             self._buf = []
@@ -597,6 +631,7 @@ async def run_call(runner_args: RunnerArguments):
             step("23-FILLER-SKIPPED", "LLM responded during final check — filler cancelled")
             return
         filler_used_turns.add(tc)
+        turn_times.note_bot_text(phrase)
         turn_times.suppress_next_bot_start += 1
         step("23-FILLER", f"LLM quiet {config.FILLER_DELAY_SECS}s — context="
              f"{context_name}: {phrase} ({len(clip)//16}ms pre-synth clip)")
@@ -682,6 +717,7 @@ async def run_call(runner_args: RunnerArguments):
             greeting_state["sent"] = True
             greeting = build_opening_line(lead)
             context.add_message({"role": "assistant", "content": greeting})
+            turn_times.note_bot_text(greeting)
             clip = await filler_audio.get(greeting) if greeting_state.get("cache_ok", True) else None
             turn_times.startup["GREETING_READY"] = time.time()
             turn_times.startup["GREETING_PLAY_START"] = time.time()

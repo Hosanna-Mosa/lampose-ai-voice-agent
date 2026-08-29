@@ -63,6 +63,16 @@ class TurnTimes:
         self.last_tool_wall: float = 0.0
         self.suppress_next_bot_start: int = 0  # filler audio must not count as the response
         self.startup: dict = {}  # call-startup wall times (answered/ws/greeting/first audio)
+        self.bot_texts: list = []  # rolling (wall_time, text) of what the bot is saying
+
+    def note_bot_text(self, text: str):
+        now = time.time()
+        self.bot_texts.append((now, text))
+        self.bot_texts = [(t, x) for t, x in self.bot_texts if now - t < 20.0]
+
+    def recent_bot_text(self, window: float = 15.0) -> str:
+        now = time.time()
+        return " ".join(x for t, x in self.bot_texts if now - t < window)
 
     def mark(self, name: str, t: Optional[float] = None):
         self.marks[name] = t if t is not None else time.time()
