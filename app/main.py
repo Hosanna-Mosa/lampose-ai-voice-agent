@@ -216,11 +216,39 @@ def _mono_wav(samples, sample_rate: int) -> bytes:
     return buf.getvalue()
 
 
+def _speech_segments(ch, sr: int):
+    """Energy-based speech segments for one channel: [(start_s, end_s), ...]."""
+    import numpy as np
+    x = np.asarray(ch, dtype=np.float32)
+    W = int(sr * 0.02)
+    m = len(x) // W * W
+    if m == 0:
+        return []
+    rms = np.sqrt((x[:m].reshape(-1, W) ** 2).mean(axis=1))
+    active = rms > 350.0
+    segs, s = [], None
+    for i, v in enumerate(active):
+        if v and s is None:
+            s = i
+        elif not v and s is not None:
+            segs.append([s * 0.02, i * 0.02]); s = None
+    if s is not None:
+        segs.append([s * 0.02, len(active) * 0.02])
+    # merge close bursts, drop blips
+    merged = []
+    for a, b in segs:
+        if merged and a - merged[-1][1] < 0.8:
+            merged[-1][1] = b
+        else:
+            merged.append([a, b])
+    return [(max(0.0, a - 0.1), b + 0.15) for a, b in merged if b - a >= 0.35]
+
+
 @app.post("/api/audio-check")
 async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
-    """Ground-truth transcription of a call recording: splits stereo channels
-    (owner=left, agent=right) and transcribes each via Sarvam STT — shows what
-    the audio ACTUALLY contains, independent of any log claims."""
+    """Ground-truth chat reconstruction of a call recording: per-channel speech
+    segments (owner=left ch, agent=right ch) transcribed individually via
+    Sarvam STT and interleaved chronologically with timestamps."""
     raw = await file.read()
     if len(raw) > 60 * 1024 * 1024:
         raise HTTPException(400, "file too large (60MB max)")
@@ -236,25 +264,35 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
     samples = array.array("h", pcm[: len(pcm) // 2 * 2])
     duration = n / sr
     if nch == 2:
-        channels = [("owner (left)", samples[0::2]), ("agent (right)", samples[1::2])]
+        channels = [("owner", samples[0::2]), ("agent", samples[1::2])]
     else:
         channels = [("mono", samples)]
-    chunk_samples = sr * 25  # Sarvam REST-friendly chunks
-    out = []
-    for name, ch in channels:
-        parts = []
-        for i in range(0, len(ch), chunk_samples):
-            piece = ch[i:i + chunk_samples]
-            if len(piece) < sr // 2:  # skip sub-0.5s tails
-                continue
+
+    jobs = []
+    for speaker, ch in channels:
+        for a, b in _speech_segments(ch, sr):
+            piece = ch[int(a * sr):int(b * sr)]
+            jobs.append({"speaker": speaker, "start": a, "end": b,
+                         "wav": _mono_wav(piece, sr)})
+
+    sem = asyncio.Semaphore(4)
+
+    async def _run(job):
+        async with sem:
             try:
-                parts.append(await _sarvam_transcribe_wav(_mono_wav(piece, sr)))
+                job["text"] = await _sarvam_transcribe_wav(job["wav"])
             except Exception as e:
-                parts.append(f"[chunk transcription failed: {e}]")
-        out.append({"channel": name, "transcript": " ".join(p for p in parts if p)})
-    step("AUDIO-CHECK", f"{file.filename}: {duration:.1f}s, {nch}ch — transcribed")
+                job["text"] = f"[transcription failed: {e}]"
+        del job["wav"]
+
+    await asyncio.gather(*[_run(j) for j in jobs])
+    segments = [{"speaker": j["speaker"], "start": round(j["start"], 1),
+                 "end": round(j["end"], 1), "text": j["text"]}
+                for j in sorted(jobs, key=lambda j: j["start"]) if j["text"]]
+    step("AUDIO-CHECK", f"{file.filename}: {duration:.1f}s, {nch}ch, "
+         f"{len(segments)} speech segments transcribed")
     return {"filename": file.filename, "duration": round(duration, 1),
-            "sample_rate": sr, "channels": out}
+            "sample_rate": sr, "segments": segments}
 
 
 @app.get("/api/recordings")

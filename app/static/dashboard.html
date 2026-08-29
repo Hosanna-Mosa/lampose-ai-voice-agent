@@ -365,18 +365,26 @@ dz.ondrop = e=>{e.preventDefault(); dz.style.borderColor='var(--line)';
   if(e.dataTransfer.files.length) checkAudio(e.dataTransfer.files[0]);};
 document.getElementById('audioFile').onchange = function(){
   if(this.files.length) checkAudio(this.files[0]); };
+function ts(t){ const m=Math.floor(t/60); return `${m}:${String(Math.floor(t%60)).padStart(2,'0')}`; }
 async function checkAudio(f){
-  $('#audioResult').innerHTML = `<span class="muted">⏳ Transcribing ${esc(f.name)} — takes a few seconds per 25s of audio…</span>`;
+  $('#audioResult').innerHTML = `<span class="muted">⏳ Transcribing ${esc(f.name)} segment by segment — ~10-30s for a full call…</span>`;
   const fd = new FormData(); fd.append('file', f);
   const r = await fetch('/api/audio-check', {method:'POST', body:fd});
   if(!r.ok){ $('#audioResult').innerHTML = `<span class="tag lost">Error</span> ${esc(await r.text())}`; return; }
   const j = await r.json();
+  if(!j.segments.length){ $('#audioResult').innerHTML = '<span class="muted">No speech detected in this file.</span>'; return; }
   $('#audioResult').innerHTML =
-    `<p class="muted">${esc(j.filename)} · ${j.duration}s · ${j.sample_rate}Hz</p>` +
-    j.channels.map(c=>`<div class="card" style="margin-top:10px">
-      <h3>${c.channel.includes('agent')?'🤖':'👤'} ${esc(c.channel)}</h3>
-      <p style="font-size:1.05rem">${esc(c.transcript)||'<i class="muted">no speech detected</i>'}</p>
-    </div>`).join('');
+    `<p class="muted">${esc(j.filename)} · ${j.duration}s · ${j.segments.length} turns
+      · 👤 owner (left channel) · 🤖 agent (right channel)</p>
+     <div class="transcript" style="max-height:none;margin-top:10px">` +
+    j.segments.map(s=>{
+      const agent = s.speaker==='agent';
+      return `<div style="align-self:${agent?'flex-end':'flex-start'};max-width:78%">
+        <div class="muted" style="font-size:.72rem;margin:2px 6px;text-align:${agent?'right':'left'}">
+          ${agent?'🤖 Agent':'👤 Owner'} · ${ts(s.start)}–${ts(s.end)}</div>
+        <div class="bubble ${agent?'assistant':'user'}">${esc(s.text)}</div>
+      </div>`;
+    }).join('') + '</div>';
 }
 /* test */
 async function initTest(){
