@@ -6,11 +6,15 @@
 - Background outbound dialer
 """
 
+import array
 import asyncio
 import csv
 import io
 import re
 import secrets
+import wave
+
+import aiohttp
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -186,6 +190,71 @@ async def api_get_call(call_sid: str, user: str = Depends(require_auth)):
     if not call:
         raise HTTPException(404, "call not found")
     return JSONResponse(db.serialize(call))
+
+
+async def _sarvam_transcribe_wav(wav_bytes: bytes) -> str:
+    """Transcribe one mono WAV via Sarvam REST (saarika, Telugu)."""
+    form = aiohttp.FormData()
+    form.add_field("file", wav_bytes, filename="chunk.wav", content_type="audio/wav")
+    form.add_field("model", "saarika:v2.5")
+    form.add_field("language_code", "te-IN")
+    async with aiohttp.ClientSession() as s:
+        async with s.post("https://api.sarvam.ai/speech-to-text",
+                          headers={"api-subscription-key": config.SARVAM_API_KEY},
+                          data=form, timeout=aiohttp.ClientTimeout(total=60)) as r:
+            j = await r.json()
+    return (j.get("transcript") or "").strip()
+
+
+def _mono_wav(samples, sample_rate: int) -> bytes:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(samples.tobytes())
+    return buf.getvalue()
+
+
+@app.post("/api/audio-check")
+async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
+    """Ground-truth transcription of a call recording: splits stereo channels
+    (owner=left, agent=right) and transcribes each via Sarvam STT — shows what
+    the audio ACTUALLY contains, independent of any log claims."""
+    raw = await file.read()
+    if len(raw) > 60 * 1024 * 1024:
+        raise HTTPException(400, "file too large (60MB max)")
+    try:
+        with wave.open(io.BytesIO(raw)) as wf:
+            nch, sw, sr = wf.getnchannels(), wf.getsampwidth(), wf.getframerate()
+            n = wf.getnframes()
+            pcm = wf.readframes(n)
+    except Exception:
+        raise HTTPException(400, "only WAV files are supported (use the app's recordings)")
+    if sw != 2:
+        raise HTTPException(400, f"expected 16-bit samples, got {sw*8}-bit")
+    samples = array.array("h", pcm[: len(pcm) // 2 * 2])
+    duration = n / sr
+    if nch == 2:
+        channels = [("owner (left)", samples[0::2]), ("agent (right)", samples[1::2])]
+    else:
+        channels = [("mono", samples)]
+    chunk_samples = sr * 25  # Sarvam REST-friendly chunks
+    out = []
+    for name, ch in channels:
+        parts = []
+        for i in range(0, len(ch), chunk_samples):
+            piece = ch[i:i + chunk_samples]
+            if len(piece) < sr // 2:  # skip sub-0.5s tails
+                continue
+            try:
+                parts.append(await _sarvam_transcribe_wav(_mono_wav(piece, sr)))
+            except Exception as e:
+                parts.append(f"[chunk transcription failed: {e}]")
+        out.append({"channel": name, "transcript": " ".join(p for p in parts if p)})
+    step("AUDIO-CHECK", f"{file.filename}: {duration:.1f}s, {nch}ch — transcribed")
+    return {"filename": file.filename, "duration": round(duration, 1),
+            "sample_rate": sr, "channels": out}
 
 
 @app.get("/api/recordings")

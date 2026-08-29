@@ -81,6 +81,7 @@
     <button data-tab="leads">Leads</button>
     <button data-tab="calls">Calls</button>
     <button data-tab="recordings">Recordings</button>
+    <button data-tab="audiocheck">Audio&nbsp;Check</button>
     <button data-tab="test">Test&nbsp;Call</button>
   </nav>
 </header>
@@ -165,6 +166,23 @@
     <h2 class="row">Call recordings <span id="recCount" class="muted"></span>
       <button class="btn secondary" style="margin-left:auto" onclick="loadRecordings()">Refresh</button></h2>
     <div id="recList" style="display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+</section>
+
+<!-- ============ AUDIO CHECK ============ -->
+<section id="tab-audiocheck" class="hidden">
+  <div class="panel">
+    <h2>Audio check — what does the recording ACTUALLY say?</h2>
+    <p class="muted">Drop any call recording (WAV). Each channel is transcribed by
+      Sarvam STT — <b>agent = right channel, owner = left</b>. Compare the agent
+      transcript against the logs' BOT-SAID text to catch missing/garbled speech.</p>
+    <div id="dropZone" style="border:2px dashed var(--line);border-radius:10px;
+         padding:44px;text-align:center;cursor:pointer;margin-top:12px">
+      <div style="font-size:2rem">🎧</div>
+      <div>Drag &amp; drop a WAV here — or click to choose</div>
+      <input type="file" id="audioFile" accept=".wav,audio/wav" style="display:none">
+    </div>
+    <div id="audioResult" style="margin-top:16px"></div>
   </div>
 </section>
 
@@ -337,6 +355,28 @@ async function loadRecordings(){
 function setSpeed(sid, rate){
   const a = document.getElementById('au-'+sid);
   if(a){ a.playbackRate = rate; if(a.paused) a.play(); toast(`Playback ${rate}×`); }
+}
+/* audio check */
+const dz = document.getElementById('dropZone');
+dz.onclick = ()=>document.getElementById('audioFile').click();
+dz.ondragover = e=>{e.preventDefault(); dz.style.borderColor='var(--accent)';};
+dz.ondragleave = ()=>dz.style.borderColor='var(--line)';
+dz.ondrop = e=>{e.preventDefault(); dz.style.borderColor='var(--line)';
+  if(e.dataTransfer.files.length) checkAudio(e.dataTransfer.files[0]);};
+document.getElementById('audioFile').onchange = function(){
+  if(this.files.length) checkAudio(this.files[0]); };
+async function checkAudio(f){
+  $('#audioResult').innerHTML = `<span class="muted">⏳ Transcribing ${esc(f.name)} — takes a few seconds per 25s of audio…</span>`;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/audio-check', {method:'POST', body:fd});
+  if(!r.ok){ $('#audioResult').innerHTML = `<span class="tag lost">Error</span> ${esc(await r.text())}`; return; }
+  const j = await r.json();
+  $('#audioResult').innerHTML =
+    `<p class="muted">${esc(j.filename)} · ${j.duration}s · ${j.sample_rate}Hz</p>` +
+    j.channels.map(c=>`<div class="card" style="margin-top:10px">
+      <h3>${c.channel.includes('agent')?'🤖':'👤'} ${esc(c.channel)}</h3>
+      <p style="font-size:1.05rem">${esc(c.transcript)||'<i class="muted">no speech detected</i>'}</p>
+    </div>`).join('');
 }
 /* test */
 async function initTest(){
