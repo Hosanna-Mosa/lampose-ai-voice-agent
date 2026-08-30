@@ -520,9 +520,12 @@ async def run_call(runner_args: RunnerArguments):
             voice=voice,
             language=Language.TE_IN,
             pace=config.TTS_PACE,
-            # start synthesis sooner on short sentences; shrinks the audible
-            # "stitched" gaps between sentences inside one agent turn
-            min_buffer_size=30,
+            # Sarvam holds text until this many chars are buffered. Our replies
+            # open with a 2-4 word sentence (~10 chars) so audio can start
+            # instantly — a higher value made Sarvam wait for the NEXT sentence
+            # (measured: 0.19s -> 0.65-1.70s first-audio). Long sentences are
+            # unaffected (they arrive whole).
+            min_buffer_size=10,
         ),
     )
     step("15-TTS-READY", f"Sarvam {config.TTS_MODEL} voice={voice} pace={config.TTS_PACE}")

@@ -33,6 +33,7 @@ class CallState:
         self.dnc = False
         self.callback_scheduled_this_call = False
         self.closing = False       # goodbye in progress -> no fillers
+        self.whatsapp_requested_this_call = False
         self.turn_times = None     # set by bot.py; used for audio drain
 
 
@@ -125,6 +126,7 @@ def build_tools(state: CallState) -> list:
             whatsapp_number: The WhatsApp number the owner confirmed. Empty means the same number as this call.
         """
         step("TOOL-WHATSAPP", f"owner wants details on WhatsApp ({whatsapp_number or 'same number'})")
+        state.whatsapp_requested_this_call = True
         if state.lead_id:
             await db.update_lead(state.lead_id, {
                 "wants_whatsapp": True,
@@ -227,6 +229,15 @@ def build_tools(state: CallState) -> list:
         outcome = outcome.lower().strip()
         # R14 means "callback agreed" — refuse to close the call on a promise
         # that was never saved. Forces schedule_callback first.
+        if (reason_code.upper().strip() == "R06" and state.lead_id
+                and not state.whatsapp_requested_this_call):
+            step("TOOL-OUTCOME-BLOCKED", "R06 without request_whatsapp_details — forcing it")
+            await params.result_callback(
+                "REJECTED: outcome R06 means the owner wants WhatsApp details, but "
+                "request_whatsapp_details has not been called. Call it NOW (empty "
+                "whatsapp_number = same number as this call), then set_lead_outcome again."
+            )
+            return
         if reason_code.upper().strip() == "R14" and state.lead_id:
             if not state.callback_scheduled_this_call:
                 step("TOOL-OUTCOME-BLOCKED", "R14 without a saved callback — forcing schedule_callback")
