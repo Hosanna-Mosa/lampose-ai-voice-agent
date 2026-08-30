@@ -230,6 +230,25 @@ class EmotionMonitor(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+class OutputGain(FrameProcessor):
+    """Scales ALL bot audio (TTS, greeting, filler) by a fixed dB gain before
+    the transport. Our voice was peaking at -0.6 dBFS and +5 dB over the
+    owner — harsh on a phone codec. -5 dB lands it in the natural range."""
+
+    def __init__(self, gain_db: float):
+        super().__init__()
+        self._factor = 10 ** (gain_db / 20)
+
+    async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+        if isinstance(frame, OutputAudioRawFrame) and self._factor != 1.0:
+            import numpy as np
+            pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
+            pcm = np.clip(pcm * self._factor, -32768, 32767).astype(np.int16)
+            frame.audio = pcm.tobytes()
+        await self.push_frame(frame, direction)
+
+
 class SentMediaMonitor(FrameProcessor):
     """Placed AFTER the output transport: frames arriving here were actually
     written to the Twilio websocket (real-time paced). Emits honest
@@ -578,6 +597,7 @@ async def run_call(runner_args: RunnerArguments):
         usage,
         tts,
         bot_logger,
+        OutputGain(config.OUTPUT_GAIN_DB),
         transport.output(),
         SentMediaMonitor(turn_times),
     ]

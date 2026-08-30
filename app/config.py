@@ -26,7 +26,8 @@ STT_LANGUAGE = _get("STT_LANGUAGE", "te-IN")
 STT_MODE = _get("STT_MODE")  # "", "codemix", "transcribe", ...
 TTS_VOICE = _get("TTS_VOICE", "kavya")
 TTS_MODEL = _get("TTS_MODEL", "bulbul:v3")
-TTS_PACE = float(_get("TTS_PACE", "1.0"))
+TTS_PACE = float(_get("TTS_PACE", "1.15"))
+OUTPUT_GAIN_DB = float(_get("OUTPUT_GAIN_DB", "-5"))  # bot audio level; was peaking at -0.6 dBFS
 
 # Anthropic
 ANTHROPIC_API_KEY = _get("ANTHROPIC_API_KEY")
