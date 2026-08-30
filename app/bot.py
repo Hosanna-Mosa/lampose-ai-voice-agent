@@ -241,10 +241,60 @@ class SarvamTTSFlushShort(SarvamTTSService):
 
     SHORT_CHARS = 30
 
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        # Number of Sarvam "final" events that belong to OUR mid-turn flushes.
+        # Each flush makes Sarvam emit a final; pipecat treats a final as
+        # end-of-context (TTSStoppedFrame + remove context), and once the LLM
+        # turn has ended there is no context left to recreate — every sentence
+        # after a flushed short one went silent (ACVPS8: U6/U10/U11 lost their
+        # second sentence). Sarvam answers flushes in order, one final each,
+        # so we swallow exactly N finals and the (N+1)th — from pipecat's own
+        # end-of-turn flush — closes the context as usual. (Verified by trace:
+        # resetting N on the end-of-turn flush re-broke it, since that flush
+        # is sent BEFORE our finals arrive.)
+        self._short_flushes = 0
+
     async def _send_text(self, text: str):
         await super()._send_text(text)
         if len(text.strip()) < self.SHORT_CHARS:
+            self._short_flushes += 1
             await self.flush_audio()
+
+    async def _connect_websocket(self):
+        # Fresh socket: any finals still owed by the old one will never come.
+        self._short_flushes = 0
+        await super()._connect_websocket()
+
+    async def _receive_messages(self):
+        # Copy of SarvamTTSService._receive_messages (pipecat 1.7.0) with one
+        # change: finals caused by our short-sentence flushes are ignored.
+        from pipecat.frames.frames import ErrorFrame
+        import base64, json
+        async for message in self._get_websocket():
+            if not isinstance(message, str):
+                continue
+            msg = json.loads(message)
+            context_id = self.get_active_audio_context_id()
+            mtype = msg.get("type")
+            if mtype == "audio":
+                await self.stop_ttfb_metrics()
+                audio = base64.b64decode(msg["data"]["audio"])
+                frame = TTSAudioRawFrame(audio, self.sample_rate, 1, context_id=context_id)
+                await self.append_to_audio_context(context_id, frame)
+            elif mtype == "event" and msg.get("data", {}).get("event_type") == "final":
+                if self._short_flushes > 0:
+                    self._short_flushes -= 1
+                    continue  # our flush: context stays open for the next sentence
+                if context_id and self.audio_context_available(context_id):
+                    await self.append_to_audio_context(
+                        context_id, TTSStoppedFrame(context_id=context_id))
+                    await self.remove_audio_context(context_id)
+            elif mtype == "error":
+                error_msg = msg["data"]["message"]
+                await self.push_error(error_msg=f"TTS Error: {error_msg}")
+                await self.append_to_audio_context(
+                    context_id, ErrorFrame(error=f"TTS Error: {error_msg}"))
 
 
 class OutputGain(FrameProcessor):
