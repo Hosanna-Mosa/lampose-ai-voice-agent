@@ -19,6 +19,7 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.frames.frames import (
+    StartFrame,
     BotStartedSpeakingFrame,
     InterimTranscriptionFrame,
     BotStoppedSpeakingFrame,
