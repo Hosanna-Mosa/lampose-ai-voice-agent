@@ -369,10 +369,16 @@ class BotSpeechLogger(FrameProcessor):
         super().__init__()
         self._turn_times = turn_times
         self._buf = []
+        # Set once StartFrame has passed this processor: from then on external
+        # tasks may inject audio here (greeting, filler) without the
+        # "StartFrame not received yet" drop.
+        self.started = asyncio.Event()
 
     async def process_frame(self, frame, direction):
         await super().process_frame(frame, direction)
         tt = self._turn_times
+        if isinstance(frame, StartFrame):
+            self.started.set()
         if isinstance(frame, TTSStartedFrame) and tt:
             if "TTS_REQUEST_START" not in tt.marks:
                 tt.mark("TTS_REQUEST_START")
@@ -783,13 +789,25 @@ async def run_call(runner_args: RunnerArguments):
                 step("18-INITIAL-GREETING",
                      f"cached greeting playing (call_live_to_greeting="
                      f"{time.time() - t_live:.2f}s): {greeting}")
-                # Through the WORKER QUEUE, not a direct push: queued frames
-                # are processed strictly after StartFrame, so they cannot be
-                # dropped by the not-started guard (the VPS silent-greeting bug).
+                # Inject DOWNSTREAM of the STT. Frames queued at the pipeline
+                # source pass through transport.input() -> stt, and pipecat's
+                # STTService feeds ANY AudioRawFrame to Sarvam — it transcribed
+                # our own greeting as owner speech (the "self-echo"), and its
+                # passthrough trickled out behind Sarvam's network sends
+                # (3.9s in ACVPS7, then the fake 7-word transcript barged in
+                # and cut the greeting). bot_logger sits after stt/llm/tts, so
+                # the clip goes straight to the transport — the same path the
+                # filler already uses. We wait for StartFrame to have passed
+                # bot_logger so the not-started guard cannot drop the audio.
+                try:
+                    await asyncio.wait_for(bot_logger.started.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    step("18-INITIAL-GREETING", "pipeline never started — greeting skipped")
+                    return
                 CHUNK = 320
-                frames = [SpeechOutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1)
-                          for i in range(0, len(clip), CHUNK)]
-                await worker.queue_frames(frames)
+                for i in range(0, len(clip), CHUNK):
+                    await bot_logger.push_frame(
+                        SpeechOutputAudioRawFrame(clip[i:i + CHUNK], 8000, 1))
                 turn_times.startup["FIRST_AUDIO_SENT"] = time.time()
                 step("20-BOT-SAID", f"{greeting}  (pre-generated clip)")
             else:
