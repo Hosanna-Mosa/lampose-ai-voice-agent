@@ -384,6 +384,24 @@ def _is_probable_echo(text: str, bot_text: str) -> bool:
     return hits / len(t_tokens) >= 0.6
 
 
+_BACKCHANNEL_TOKENS = {
+    # Telugu listening noises / acknowledgements (never an answer on their own)
+    "ఆ", "ఆఁ", "ఆహా", "హా", "హాఁ", "హ", "హ్మ్", "హ్మ", "హ్మ్మ్", "ఊ", "ఊఁ", "ఉం", "ఉ",
+    "ఓకే", "ఒకే", "సరే", "సరె", "అలాగే", "అలాగ", "సర్", "సార్",
+    # English code-mix
+    "ok", "okay", "hmm", "hm", "mm", "mhm", "haan", "ha", "ya", "yeah", "yes",
+}
+
+
+def _is_backchannel(text: str) -> bool:
+    """True when a transcript is ONLY acknowledgement noises ("ఆ ఆ", "సరే సరే",
+    "ఆ ఆ ఓకే"). Any real word — అవును/లేదు/ఆగండి/చెప్పండి/… — makes it
+    False, so genuine answers and interruptions still get through."""
+    tokens = [t.strip(".,?!।-—").lower() for t in text.split()]
+    tokens = [t for t in tokens if t]
+    return bool(tokens) and all(t in _BACKCHANNEL_TOKENS for t in tokens)
+
+
 class UserSpeechLogger(FrameProcessor):
     """[STEP 19-USER-SAID] — every final owner utterance from Sarvam STT.
     Also the self-echo guard: transcripts of the bot's OWN voice echoing back
@@ -405,6 +423,16 @@ class UserSpeechLogger(FrameProcessor):
                 if isinstance(frame, TranscriptionFrame):
                     step("ECHO-GUARD", f"dropped self-echo: {frame.text}")
                 return  # swallow: no turn start, no barge-in, not in context
+            # Acknowledgement filter: "ఆ ఆ" / "సరే సరే" / "ఆ ఆ ఓకే" while Kavya
+            # is mid-sentence are listening noises, not turns. With the 2-word
+            # barge-in they stopped her and got a full reply each (ACVPS10:
+            # 4 overlaps, "అర్థమైంది సార్ అంటే…" fragments). Only while the bot
+            # is actually speaking — a "సరే" after she has finished is an answer.
+            tt = self._turn_times
+            if tt and tt.bot_speaking and _is_backchannel(frame.text):
+                if isinstance(frame, TranscriptionFrame):
+                    step("BACKCHANNEL", f"ignored while speaking: {frame.text}")
+                return
         if isinstance(frame, TranscriptionFrame):
             if self._turn_times:
                 self._turn_times.mark("STT_FINAL")
