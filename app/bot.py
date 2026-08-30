@@ -230,6 +230,22 @@ class EmotionMonitor(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+class SarvamTTSFlushShort(SarvamTTSService):
+    """Sarvam's websocket holds text until 30 characters are buffered (its hard
+    floor — lower values silently close the socket). A natural short opener
+    like "అలాగే సర్!" therefore waited for the NEXT sentence before any audio
+    (measured 0.65–1.73s). An explicit flush releases it in ~0.27s and the
+    socket stays usable; pipecat transparently recreates the turn's audio
+    context for the following sentences."""
+
+    SHORT_CHARS = 30
+
+    async def _send_text(self, text: str):
+        await super()._send_text(text)
+        if len(text.strip()) < self.SHORT_CHARS:
+            await self.flush_audio()
+
+
 class OutputGain(FrameProcessor):
     """Scales ALL bot audio (TTS, greeting, filler) by a fixed dB gain before
     the transport. Our voice was peaking at -0.6 dBFS and +5 dB over the
@@ -261,6 +277,7 @@ class SentMediaMonitor(FrameProcessor):
         self._tt = turn_times
         self._uid = 0
         self._frames = 0
+        self._bytes = 0
         self._startup_done = False
 
     async def process_frame(self, frame, direction):
@@ -269,13 +286,15 @@ class SentMediaMonitor(FrameProcessor):
         if isinstance(frame, BotStartedSpeakingFrame):
             self._uid += 1
             self._frames = 0
+            self._bytes = 0
             if "FIRST_MEDIA_SENT" not in su:
                 su["FIRST_MEDIA_SENT"] = time.time()
             step("AUDIO-FIRST-MEDIA", f"utterance=U{self._uid} — media flowing to Twilio")
         elif isinstance(frame, OutputAudioRawFrame):
             self._frames += 1
+            self._bytes += len(frame.audio)
         elif isinstance(frame, BotStoppedSpeakingFrame):
-            dur = self._frames * 0.02
+            dur = self._bytes / (2 * 8000)  # s16 mono @ 8kHz
             step("AUDIO-COMPLETE", f"utterance=U{self._uid} sent={dur:.2f}s "
                  f"({self._frames} frames)")
             if not self._startup_done and su.get("FIRST_MEDIA_SENT"):
@@ -439,7 +458,13 @@ async def _summarize(call_sid: str, transcript: list, state: CallState):
                     "compliance_ok (bool: no guarantees, no earnings numbers, "
                     "no fake features promised), "
                     "owner_sentiment (one word: positive/neutral/annoyed/angry), "
-                    "next_action (one short sentence).\n\n" + convo
+                    "next_action (one short sentence), "
+                    "suggested_outcome (one of hot/warm/cold/lost), "
+                    "suggested_reason_code (R01 no interest, R02 no vacancy, R03 enough "
+                    "customers, R04 no trust, R05 commercial, R06 wants WhatsApp, R07 needs "
+                    "partner/owner approval, R08 too complicated, R11 not eligible, R12 wrong "
+                    "number, R14 callback set, R15 onboarding started, R16 do not contact).\n\n"
+                    + convo
                 ),
             }],
         )
@@ -462,6 +487,19 @@ async def _summarize(call_sid: str, transcript: list, state: CallState):
                  f"next: {scorecard.get('next_action', '')}")
         if state.lead_id and summary:
             await db.update_lead(state.lead_id, {"notes": summary[:600]})
+        # Safety net: the owner hung up before the agent recorded an outcome.
+        if state.lead_id and not state.outcome and scorecard.get("suggested_outcome"):
+            outcome = str(scorecard.get("suggested_outcome", "")).lower().strip()
+            reason = str(scorecard.get("suggested_reason_code", "")).upper().strip()
+            if outcome in ("hot", "warm", "cold", "lost"):
+                lead_now = await db.get_lead(state.lead_id) or {}
+                update = {"reason_code": reason,
+                          "last_outcome": f"auto: {scorecard.get('next_action', '')}"[:300]}
+                if lead_now.get("status") not in ("callback", "onboarding_started", "dnc", "hot"):
+                    update["status"] = outcome
+                await db.update_lead(state.lead_id, update)
+                state.outcome, state.reason_code = outcome, reason
+                step("AUTO-OUTCOME", f"agent recorded none — grader assigned {outcome.upper()} {reason}")
     except Exception as e:
         logger.warning(f"Summary failed for {call_sid}: {e}")
 
@@ -513,7 +551,7 @@ async def run_call(runner_args: RunnerArguments):
          f"(mode={config.STT_MODE or 'default'})")
 
     voice = (call_doc or {}).get("voice") or config.TTS_VOICE
-    tts = SarvamTTSService(
+    tts = SarvamTTSFlushShort(
         api_key=config.SARVAM_API_KEY,
         settings=SarvamTTSService.Settings(
             model=config.TTS_MODEL,
