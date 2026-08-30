@@ -548,6 +548,11 @@ async def _summarize(call_sid: str, transcript: list, state: CallState):
         if state.lead_id and not state.outcome and scorecard.get("suggested_outcome"):
             outcome = str(scorecard.get("suggested_outcome", "")).lower().strip()
             reason = str(scorecard.get("suggested_reason_code", "")).upper().strip()
+            # Same guards as set_lead_outcome: these codes mean a tool ran.
+            if reason == "R14" and not state.callback_scheduled_this_call:
+                reason = ""
+            if reason == "R06" and not state.whatsapp_requested_this_call:
+                reason = ""
             if outcome in ("hot", "warm", "cold", "lost"):
                 lead_now = await db.get_lead(state.lead_id) or {}
                 update = {"reason_code": reason,

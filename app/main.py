@@ -10,6 +10,7 @@ import array
 import asyncio
 import csv
 import io
+import json
 import re
 import secrets
 import wave
@@ -198,12 +199,25 @@ async def _sarvam_transcribe_wav(wav_bytes: bytes) -> str:
     form.add_field("file", wav_bytes, filename="chunk.wav", content_type="audio/wav")
     form.add_field("model", "saarika:v2.5")
     form.add_field("language_code", "te-IN")
-    async with aiohttp.ClientSession() as s:
-        async with s.post("https://api.sarvam.ai/speech-to-text",
-                          headers={"api-subscription-key": config.SARVAM_API_KEY},
-                          data=form, timeout=aiohttp.ClientTimeout(total=60)) as r:
-            j = await r.json()
-    return (j.get("transcript") or "").strip()
+    # Sarvam REST errors used to be swallowed (r.json() on an error body has no
+    # "transcript") — every segment came back empty and the page reported
+    # "0 speech segments" as if the recording were silent. Now: retry 429/5xx
+    # with backoff, and raise with the real reason otherwise.
+    last = ""
+    for attempt in range(4):
+        async with aiohttp.ClientSession() as s:
+            async with s.post("https://api.sarvam.ai/speech-to-text",
+                              headers={"api-subscription-key": config.SARVAM_API_KEY},
+                              data=form, timeout=aiohttp.ClientTimeout(total=60)) as r:
+                body = await r.text()
+                if r.status == 200:
+                    return (json.loads(body).get("transcript") or "").strip()
+                last = f"HTTP {r.status}: {body[:160]}"
+        if r.status == 429 or r.status >= 500:
+            await asyncio.sleep(1.5 * (attempt + 1))
+            continue
+        break
+    raise RuntimeError(last)
 
 
 def _mono_wav(samples, sample_rate: int) -> bytes:
@@ -275,7 +289,8 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
             jobs.append({"speaker": speaker, "start": a, "end": b,
                          "wav": _mono_wav(piece, sr)})
 
-    sem = asyncio.Semaphore(4)
+    sem = asyncio.Semaphore(2)  # gentle on Sarvam's REST rate limit
+    failures = []
 
     async def _run(job):
         async with sem:
@@ -283,6 +298,7 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
                 job["text"] = await _sarvam_transcribe_wav(job["wav"])
             except Exception as e:
                 job["text"] = f"[transcription failed: {e}]"
+                failures.append(str(e))
         del job["wav"]
 
     await asyncio.gather(*[_run(j) for j in jobs])
@@ -290,7 +306,8 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
                  "end": round(j["end"], 1), "text": j["text"]}
                 for j in sorted(jobs, key=lambda j: j["start"]) if j["text"]]
     step("AUDIO-CHECK", f"{file.filename}: {duration:.1f}s, {nch}ch, "
-         f"{len(segments)} speech segments transcribed")
+         f"{len(jobs)} speech segments found, {len(segments)} transcribed"
+         + (f", {len(failures)} FAILED — first: {failures[0][:120]}" if failures else ""))
     return {"filename": file.filename, "duration": round(duration, 1),
             "sample_rate": sr, "segments": segments}
 
