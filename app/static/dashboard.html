@@ -218,7 +218,9 @@
     <p class="muted">Background sound plays under Kavya for the whole call so the line
       doesn't sound dead. <b>Preview</b> plays the bed at the exact level callers hear,
       with a line of her voice over it. The number is the volume: <b>0.06–0.12 sounds
-      natural</b>, 0.2 is clearly present, and louder is refused — a bed near speech
+      natural</b> — but <b>quiet</b> at 0.08 is meant to be almost inaudible, so
+      to actually hear the effect pick <b>call centre</b> or <b>café</b> at 0.12.
+      0.2 is clearly present, and louder is refused — a bed near speech
       level garbles Kavya's words and echoes off the owner's handset into our speech
       recognition. Your pick applies to this test call only — set
       <code>AMBIENT_ENABLED / AMBIENT_SOUND / AMBIENT_VOLUME</code> in <code>.env</code>
@@ -411,9 +413,21 @@ async function initTest(){
     cfg.ambient_beds.map(b=>`<option value="${b.name}" title="${b.label}">${b.label}</option>`).join('');
   $('#t_ambvol').value = cfg.ambient_volume;
   $('#t_ambvol').max = cfg.ambient_max_volume;
+  // Remember the last pick: reloading the page used to reset the dropdown to
+  // "default (off)", so the next call went out with no background at all.
+  try {
+    const bed = localStorage.getItem('lampose_ambient');
+    const vol = localStorage.getItem('lampose_ambvol');
+    if (bed !== null) $('#t_ambient').value = bed;
+    if (vol !== null) $('#t_ambvol').value = vol;
+  } catch (e) {}
 }
 function previewAmbient(play){
   const a = $('#t_amb_audio'), bed = $('#t_ambient').value;
+  try {
+    localStorage.setItem('lampose_ambient', bed);
+    localStorage.setItem('lampose_ambvol', $('#t_ambvol').value);
+  } catch (e) {}
   a.pause();
   if(!bed || bed==='off'){ if(play) toast('Pick a background sound to preview'); return; }
   a.src = `/api/ambient/${bed}.wav?volume=${encodeURIComponent($('#t_ambvol').value||0.08)}`;
