@@ -268,6 +268,42 @@ def _otsu_threshold(rms) -> float:
     return float(10 ** centres[int(np.argmax(variance))] - 1.0)
 
 
+# Sarvam's sync STT refuses audio over 30s ("use the batch API"). A talkative
+# agent easily produces one unbroken 50s stretch (ACVPS11: 0:03–0:55), and the
+# whole segment then came back as an error bubble instead of a transcript.
+_STT_MAX_SECS = 25.0
+
+
+def _quietest_moment(ch, sr: int, lo: float, hi: float) -> float:
+    """Timestamp of the softest 20 ms in [lo, hi] — the least bad place to cut."""
+    import numpy as np
+    x = np.asarray(ch[int(lo * sr):int(hi * sr)], dtype=np.float32)
+    W = int(sr * 0.02)
+    m = len(x) // W * W
+    if m == 0:
+        return hi
+    rms = np.sqrt((x[:m].reshape(-1, W) ** 2).mean(axis=1))
+    return lo + int(np.argmin(rms)) * 0.02
+
+
+def _split_for_stt(ch, sr: int, a: float, b: float):
+    """Chop one long segment into transcribable pieces, cutting at pauses so
+    words survive. Pieces stay contiguous, so the chat view still reads as one
+    continuous stretch of speech."""
+    pieces, start = [], a
+    while b - start > _STT_MAX_SECS:
+        lo = max(start + 5.0, start + _STT_MAX_SECS - 3.0)
+        hi = min(start + _STT_MAX_SECS, b - 0.5)
+        cut = _quietest_moment(ch, sr, lo, hi) if hi > lo else hi
+        if not (start < cut < b):          # never stall or overshoot
+            cut = min(start + _STT_MAX_SECS, b)
+        pieces.append((start, cut))
+        start = cut
+    if b - start > 0.05:
+        pieces.append((start, b))
+    return pieces
+
+
 def _speech_segments(ch, sr: int):
     """Energy-based speech segments for one channel: [(start_s, end_s), ...]."""
     import numpy as np
@@ -321,11 +357,15 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
         channels = [("mono", samples)]
 
     jobs = []
+    split = 0
     for speaker, ch in channels:
         for a, b in _speech_segments(ch, sr):
-            piece = ch[int(a * sr):int(b * sr)]
-            jobs.append({"speaker": speaker, "start": a, "end": b,
-                         "wav": _mono_wav(piece, sr)})
+            parts = _split_for_stt(ch, sr, a, b)
+            split += len(parts) - 1
+            for sa, sb in parts:
+                piece = ch[int(sa * sr):int(sb * sr)]
+                jobs.append({"speaker": speaker, "start": sa, "end": sb,
+                             "wav": _mono_wav(piece, sr)})
 
     sem = asyncio.Semaphore(2)  # gentle on Sarvam's REST rate limit
     failures = []
@@ -344,7 +384,9 @@ async def api_audio_check(file: UploadFile, user: str = Depends(require_auth)):
                  "end": round(j["end"], 1), "text": j["text"]}
                 for j in sorted(jobs, key=lambda j: j["start"]) if j["text"]]
     step("AUDIO-CHECK", f"{file.filename}: {duration:.1f}s, {nch}ch, "
-         f"{len(jobs)} speech segments found, {len(segments)} transcribed"
+         f"{len(jobs)} speech segments found"
+         + (f" ({split} split to stay under Sarvam's 30s limit)" if split else "")
+         + f", {len(segments)} transcribed"
          + (f", {len(failures)} FAILED — first: {failures[0][:120]}" if failures else ""))
     return {"filename": file.filename, "duration": round(duration, 1),
             "sample_rate": sr, "segments": segments}
