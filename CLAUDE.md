@@ -1,81 +1,24 @@
-# LAMPOSE Telugu voice agent — working notes
+# LAMPOSE Voice AI — index
 
-Outbound + inbound Telugu AI calling agent that phones PG / hostel / To-Let /
-hotel owners and onboards them onto LAMPOSE (stay-booking platform).
-Live at **voice.lampose.com** on the user's own VPS.
+Telugu AI calling agent that phones property owners (PG / hostel / To-Let /
+hotel) and onboards them onto LAMPOSE. Live at **voice.lampose.com** on the
+user's own VPS. Python 3.12 in `venv/`, deployed by `git pull` on the VPS.
 
-**Read `docs/PROJECT_CONTEXT.md` first** — full history, decisions, gotchas and
-the open items list. This file is only the working essentials.
+This file is deliberately short: it is loaded into every session, and its job is
+only to point at the right document. Keep area notes in `docs/`, one file per
+area, and add a line here when you create one.
 
-## Stack
+| Document | What it covers |
+|---|---|
+| `docs/PROJECT_CONTEXT.md` | The whole project: architecture, decisions, gotchas, latency, open items, roadmap. **Read this first.** |
+| `docs/VOICE_PIPELINE.md` | The call pipeline — commands, house rules, the landmines that each cost a broken call, and how to resume the session it was built in. |
+| `docs/telugu_script.md` | The Telugu call script. |
 
-Twilio Media Streams (8 kHz μ-law) → Pipecat 1.7.0 → Sarvam `saaras:v3` STT
-(te-IN) → Claude Haiku 4.5 (prompt caching on) → Sarvam `bulbul:v3` TTS →
-MongoDB + FastAPI dashboard. Python 3.12 in `venv/`.
-
-## Commands
+## Before pushing anything
 
 ```bash
-# tests — all six must pass before pushing
 for t in tests/test_*.py; do PYTHONPATH=. ./venv/bin/python $t; done
-
-# the user deploys by pulling on the VPS (they run it, no SSH access here)
-cd /var/www/lampose-ai-voice-agent && git pull && chown -R lampose:lampose . \
-  && systemctl restart lampose-voice
-
-# what happened on a call
-journalctl -u lampose-voice -f | grep STEP
-journalctl -u lampose-voice --since "10 min ago" | grep -v STEP   # errors
 ```
 
-## House rules learned the hard way
-
-- **Verify every edit anchor.** A silently-failed `.replace()` once shipped a
-  broken handler to production. Assert before writing.
-- **Measure, don't assume.** Several confident hypotheses in this project were
-  wrong (English words were fine; the ambient bed wasn't the cause; the docs'
-  temperature range is wrong). Probe the real API before building on a belief.
-- **One step at a time for the user.** They run every VPS command by hand and
-  asked explicitly for a single instruction per message, not a batch.
-- **Never claim a call behaviour is fixed until a real call proves it.** Every
-  fix in this project is named after the call that exposed it (ACVPS6, 8, 10…).
-- Ask before changing `app/prompts.py` — it changes what a real owner hears.
-
-## Session continuity
-
-The whole build-and-tune history lives in one Claude Code session:
-
-```
-13767859-a0f3-4121-aae1-ad50e2f99ec3
-```
-
-```bash
-claude --resume 13767859-a0f3-4121-aae1-ad50e2f99ec3   # this exact session
-claude --resume        # pick from a list for this folder
-claude --continue      # the most recent session here
-```
-
-`/resume` switches session from inside a running one; the VS Code panel has the
-same picker. The transcript is a plain file at
-`~/.claude/projects/-Users-hosanna-LAMPOSE-ai-voice--1/<session-id>.jsonl` —
-worth copying somewhere safe, since clearing `~/.claude` deletes it.
-
-A resumed conversation is summarised as it grows, so fine detail compresses.
-**These docs, not the transcript, are the durable record** — if something
-matters later, write it here rather than relying on the chat.
-
-## Landmines (each cost hours)
-
-- `create_transport()` is what parses Twilio's handshake and fills
-  `runner_args.call_data`. Read `call_data` before it and the CallSid is
-  empty — every call gets rejected as an unknown session.
-- Pipecat's `STTService` feeds **any** `AudioRawFrame` to the STT. Inject bot
-  audio *downstream* of the STT (`bot_logger.push_frame`), never at the source.
-- Sarvam TTS `min_buffer_size` floor is **30**. Lower values make Sarvam close
-  the socket silently and the call goes mute.
-- Every `{"type":"flush"}` produces a `final` event, which pipecat treats as
-  end-of-context. `SarvamTTSFlushShort` counts and swallows its own.
-- Only `TTSAudioRawFrame` / `SpeechOutputAudioRawFrame` are speech. Plain
-  `OutputAudioRawFrame` is ambient bed — don't count it as spoken audio.
-- Sarvam sync STT rejects audio over 30 s; long segments must be split.
-- `temperature` really tops out at **1.0** (the docs say 2.0).
+All six suites must pass. The user deploys by hand on the VPS — give them one
+command at a time, never a batch.
