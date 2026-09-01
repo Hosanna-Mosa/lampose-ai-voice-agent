@@ -59,6 +59,9 @@ class TurnTimes:
         # live pipeline state used by filler + end-call drain
         self.last_user_text: str = ""
         self.bot_speaking: bool = False
+        # True once end_call has begun closing: no further user turns are
+        # accepted, so a goodbye can never be followed by a second one.
+        self.closing: bool = False
         self.last_bot_audio_end: float = 0.0
         self.last_tool_wall: float = 0.0
         self.suppress_next_bot_start: int = 0  # filler audio must not count as the response

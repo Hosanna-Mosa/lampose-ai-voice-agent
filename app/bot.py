@@ -373,7 +373,10 @@ class SentMediaMonitor(FrameProcessor):
             if "FIRST_MEDIA_SENT" not in su:
                 su["FIRST_MEDIA_SENT"] = time.time()
             step("AUDIO-FIRST-MEDIA", f"utterance=U{self._uid} — media flowing to Twilio")
-        elif isinstance(frame, OutputAudioRawFrame):
+        elif isinstance(frame, (TTSAudioRawFrame, SpeechOutputAudioRawFrame)):
+            # Only actual speech counts. With ambient background sound the
+            # transport emits bed-only frames continuously, and counting those
+            # inflated every utterance (a 3.3s greeting logged as 6.3s).
             self._frames += 1
             self._bytes += len(frame.audio)
         elif isinstance(frame, BotStoppedSpeakingFrame):
@@ -449,7 +452,16 @@ class UserSpeechLogger(FrameProcessor):
 
     async def process_frame(self, frame, direction):
         await super().process_frame(frame, direction)
+        tt = self._turn_times
         if isinstance(frame, (TranscriptionFrame, InterimTranscriptionFrame)):
+            # The call is already ending: the goodbye has been said and end_call
+            # is draining the audio. Anything the owner says now must NOT start
+            # another turn — that is how ACVPS12 ended with two goodbyes in one
+            # breath.
+            if tt and tt.closing:
+                if isinstance(frame, TranscriptionFrame):
+                    step("CLOSING", f"ignored, goodbye already said: {frame.text}")
+                return
             if self._echo_window_active() and _is_probable_echo(
                     frame.text, self._turn_times.recent_bot_text()):
                 if isinstance(frame, TranscriptionFrame):
@@ -460,7 +472,6 @@ class UserSpeechLogger(FrameProcessor):
             # barge-in they stopped her and got a full reply each (ACVPS10:
             # 4 overlaps, "అర్థమైంది సార్ అంటే…" fragments). Only while the bot
             # is actually speaking — a "సరే" after she has finished is an answer.
-            tt = self._turn_times
             if tt and tt.bot_speaking and _is_backchannel(frame.text):
                 if isinstance(frame, TranscriptionFrame):
                     step("BACKCHANNEL", f"ignored while speaking: {frame.text}")

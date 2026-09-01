@@ -272,6 +272,10 @@ def build_tools(state: CallState) -> list:
         """
         step("TOOL-END-CALL", f"agent ending call: {reason} — draining goodbye audio first")
         state.closing = True
+        if state.turn_times is not None:
+            # Stop accepting user turns: a "బాయ్" arriving now used to start a
+            # fresh reply and the owner heard the goodbye twice (ACVPS12).
+            state.turn_times.closing = True
         await db.update_call(state.call_sid, {"end_reason": reason})
         # Drain: never hang up while the final goodbye is queued or playing.
         # Wait until a bot utterance ENDS after this point (or times out).
