@@ -9,5 +9,6 @@ logs/
 .env.local
 filler_cache/
 ambient_cache/
+voice_cache/
 .DS_Store
 test voices/

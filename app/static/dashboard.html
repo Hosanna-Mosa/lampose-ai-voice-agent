@@ -82,6 +82,7 @@
     <button data-tab="calls">Calls</button>
     <button data-tab="recordings">Recordings</button>
     <button data-tab="audiocheck">Audio&nbsp;Check</button>
+    <button data-tab="voices">Voices</button>
     <button data-tab="test">Test&nbsp;Call</button>
   </nav>
 </header>
@@ -183,6 +184,37 @@
       <input type="file" id="audioFile" accept=".wav,audio/wav" style="display:none">
     </div>
     <div id="audioResult" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<!-- ============ VOICES ============ -->
+<section id="tab-voices" class="hidden">
+  <div class="panel">
+    <h2>Voices — which one sounds like a real Telugu speaker?</h2>
+    <p class="muted">Every Sarvam voice saying our actual opening line. We have
+      always used <b>kavya</b>; there are 44 to choose from. Listen on
+      <b>Phone 8&nbsp;kHz</b> — that is what owners really hear. <b>Studio
+      24&nbsp;kHz</b> is what a laptop demo plays, and is why other platforms'
+      website samples sound better than any phone call can.</p>
+    <div class="row" style="margin-top:10px; flex-wrap:wrap">
+      <label class="muted">Quality
+        <select id="v_sr">
+          <option value="8000">Phone 8 kHz (real calls)</option>
+          <option value="24000">Studio 24 kHz (website demo)</option>
+        </select></label>
+      <label class="muted">Pace
+        <input id="v_pace" type="number" min="0.5" max="2" step="0.05" style="width:76px"></label>
+      <label class="muted">Expressiveness
+        <input id="v_temp" type="number" min="0.01" max="2" step="0.1" placeholder="0.6"
+               style="width:76px"></label>
+      <label class="muted" style="flex:1; min-width:280px">Sample line
+        <input id="v_text" style="width:100%"></label>
+    </div>
+    <p class="muted" style="margin-top:6px">Pace 1.15 (our current setting) speaks
+      27% faster than natural — the single biggest reason a voice sounds rushed
+      rather than human. Try 1.0 next to it.</p>
+    <div id="voiceGrid" class="row" style="flex-wrap:wrap; gap:8px; margin-top:12px"></div>
+    <audio id="v_audio" style="display:none"></audio>
   </div>
 </section>
 
@@ -402,6 +434,48 @@ async function checkAudio(f){
       </div>`;
     }).join('') + '</div>';
 }
+/* voices */
+let VOICE_CFG = null;
+async function initVoices(){
+  const cfg = VOICE_CFG = await api('/api/config');
+  $('#v_pace').value = cfg.tts_pace;
+  $('#v_temp').value = cfg.tts_temperature ?? '';
+  $('#v_text').value = cfg.sample_text;
+  let fav = [];
+  try { fav = JSON.parse(localStorage.getItem('lampose_fav_voices') || '[]'); } catch(e){}
+  const inUse = cfg.default_voice;
+  $('#voiceGrid').innerHTML = cfg.voice_catalogue.map(v=>`
+    <div class="panel" style="padding:8px 10px; min-width:150px" data-voice="${v.name}">
+      <b>${v.name}</b>${v.name===inUse?' <span class="muted">· in use</span>':''}<br>
+      <span class="muted" style="font-size:12px">${v.gender} · ${v.model}</span><br>
+      <button class="btn" style="margin-top:6px" onclick="playVoice('${v.name}',this)">▶</button>
+      <button class="btn" onclick="favVoice('${v.name}',this)">${fav.includes(v.name)?'★':'☆'}</button>
+      <span class="muted" id="dur-${v.name}" style="font-size:12px"></span>
+    </div>`).join('');
+}
+async function playVoice(name, btn){
+  const a = $('#v_audio');
+  const q = new URLSearchParams({voice:name, sr:$('#v_sr').value, pace:$('#v_pace').value,
+                                text:$('#v_text').value});
+  if($('#v_temp').value) q.set('temperature', $('#v_temp').value);
+  btn.textContent = '…';
+  try {
+    const r = await fetch('/api/voice-sample?'+q);
+    if(!r.ok){ toast('Voice failed: ' + (await r.text()).slice(0,120)); btn.textContent='▶'; return; }
+    $('#dur-'+name).textContent = (r.headers.get('X-Duration')||'') + 's';
+    a.src = URL.createObjectURL(await r.blob());
+    a.play();
+  } finally { btn.textContent = '▶'; }
+}
+function favVoice(name, btn){
+  let fav = [];
+  try { fav = JSON.parse(localStorage.getItem('lampose_fav_voices') || '[]'); } catch(e){}
+  const i = fav.indexOf(name);
+  if(i<0) fav.push(name); else fav.splice(i,1);
+  try { localStorage.setItem('lampose_fav_voices', JSON.stringify(fav)); } catch(e){}
+  btn.textContent = fav.includes(name) ? '★' : '☆';
+}
+
 /* test */
 async function initTest(){
   const cfg = await api('/api/config');
@@ -442,7 +516,7 @@ async function testCall(){
   toast(`Calling you — voice "${j.voice}", background ${j.ambient||'off'}` +
         (j.ambient_volume!=null ? ` at ${j.ambient_volume}` : '') + '…');
 }
-loadOverview(); initTest();
+loadOverview(); initTest(); initVoices();
 setInterval(()=>{ if(!$('#tab-overview').classList.contains('hidden')) loadOverview(); }, 15000);
 </script>
 </body>

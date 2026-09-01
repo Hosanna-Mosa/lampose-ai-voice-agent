@@ -718,12 +718,16 @@ async def run_call(runner_args: RunnerArguments):
                 voice=voice,
                 language=Language.TE_IN,
                 pace=config.TTS_PACE,
+            **({"temperature": config.TTS_TEMPERATURE}
+               if config.TTS_TEMPERATURE is not None else {}),
                 # 30 = proven on live calls. 10 silently produced NO audio from
                 # Sarvam (call ACVPS5: every TTS reply lost). Do not lower blindly.
                 min_buffer_size=30,
             ),
         )
-        step("15-TTS-READY", f"Sarvam {config.TTS_MODEL} voice={voice} pace={config.TTS_PACE}")
+        step("15-TTS-READY", f"Sarvam {config.TTS_MODEL} voice={voice} pace={config.TTS_PACE}"
+         + (f" temperature={config.TTS_TEMPERATURE}"
+            if config.TTS_TEMPERATURE is not None else ""))
 
         system_prompt = build_system_prompt(lead, direction)
         llm = AnthropicLLMService(

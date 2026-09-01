@@ -28,7 +28,7 @@ from loguru import logger
 from twilio.request_validator import RequestValidator
 from twilio.twiml.voice_response import Connect, Stream, VoiceResponse
 
-from app import ambient, config, db, dialer
+from app import ambient, config, db, dialer, voices
 from app.logsetup import setup_logging, step
 
 setup_logging()
@@ -496,7 +496,31 @@ async def api_config(user: str = Depends(require_auth)):
         "ambient_default": config.AMBIENT_SOUND,
         "ambient_volume": config.AMBIENT_VOLUME,
         "ambient_max_volume": config.AMBIENT_MAX_VOLUME,
+        "voice_catalogue": voices.catalogue(),
+        "sample_text": voices.SAMPLE_TEXT,
+        "tts_pace": config.TTS_PACE,
+        "tts_temperature": config.TTS_TEMPERATURE,
     }
+
+
+@app.get("/api/voice-sample")
+async def api_voice_sample(voice: str, text: str = "", pace: Optional[float] = None,
+                           temperature: Optional[float] = None, sr: int = 8000,
+                           user: str = Depends(require_auth)):
+    """One voice saying the sample line, cached. sr=8000 is what a phone
+    delivers; sr=24000 is what a laptop demo plays — the same voice sounds far
+    better at 24k, which is most of why other platforms' demos impress."""
+    if sr not in (8000, 16000, 24000):
+        raise HTTPException(400, "sample rate must be 8000, 16000 or 24000")
+    try:
+        wav = await voices.sample(voice, text=text, pace=pace,
+                                  temperature=temperature, sample_rate=sr)
+    except KeyError:
+        raise HTTPException(404, f"unknown voice '{voice}'")
+    except Exception as e:
+        raise HTTPException(502, f"Sarvam refused: {e}")
+    return Response(content=wav, media_type="audio/wav",
+                    headers={"X-Duration": f"{voices.duration_secs(wav):.1f}"})
 
 
 @app.get("/api/ambient/{name}.wav")

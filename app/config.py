@@ -27,6 +27,9 @@ STT_MODE = _get("STT_MODE")  # "", "codemix", "transcribe", ...
 TTS_VOICE = _get("TTS_VOICE", "kavya")
 TTS_MODEL = _get("TTS_MODEL", "bulbul:v3")
 TTS_PACE = float(_get("TTS_PACE", "1.15"))
+# bulbul:v3 expressiveness (0.01-2.0, Sarvam default 0.6). Higher = livelier
+# prosody, lower = flatter and more predictable. Unset = leave it to Sarvam.
+TTS_TEMPERATURE = float(_get("TTS_TEMPERATURE", "0")) or None
 OUTPUT_GAIN_DB = float(_get("OUTPUT_GAIN_DB", "-5"))  # bot audio level; was peaking at -0.6 dBFS
 
 # Anthropic
@@ -100,4 +103,7 @@ AMBIENT_VOLUME = float(_get("AMBIENT_VOLUME", "0.08"))  # 0.08 ≈ 25 dB under s
 AMBIENT_MAX_VOLUME = float(_get("AMBIENT_MAX_VOLUME", "0.25"))
 
 # Sarvam bulbul:v3 voices offered in the dashboard test-call picker
-TEST_VOICES = ["kavya", "shreya", "pooja", "ritu", "shubh", "gokul", "aditya", "rohan"]
+# Kept for the Test Call quick-picker; the Voices tab lists all 44 (app/voices.py)
+TEST_VOICES = ["kavya", "shreya", "pooja", "ritu", "priya", "neha", "simran",
+               "ishita", "tanya", "roopa", "shruti", "suhani", "kavitha", "rupali",
+               "shubh", "gokul", "aditya", "rohan", "anand", "vijay", "mani"]
