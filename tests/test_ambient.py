@@ -101,6 +101,12 @@ check("unknown bed name -> silent, not an error", _resolve_ambient({"ambient": "
 check("no call doc at all -> config bed", _resolve_ambient(None) == "office")
 config.AMBIENT_ENABLED = False
 
+print("\n   volume ceiling (a bed near speech level ruins the call)")
+for asked, want in ((0.08, 0.08), (config.AMBIENT_MAX_VOLUME, config.AMBIENT_MAX_VOLUME),
+                    (1.0, config.AMBIENT_MAX_VOLUME), (-1, 0.0)):
+    got = _transport_params("office", asked).audio_out_mixer._volume
+    check(f"asked {asked} -> plays at {got}", abs(got - want) < 1e-9)
+
 params = _transport_params("office")
 check("transport gets a mixer when a bed is set", params.audio_out_mixer is not None)
 check("no mixer when silent", _transport_params("").audio_out_mixer is None)

@@ -436,7 +436,8 @@ async def api_test_call(payload: dict, user: str = Depends(require_auth)):
     if amb and amb != "off" and amb not in ambient.BEDS:
         raise HTTPException(400, f"unknown background sound '{amb}'")
     amb_vol = payload.get("ambient_volume")
-    amb_vol = max(0.0, min(1.0, float(amb_vol))) if amb_vol not in (None, "") else None
+    amb_vol = (max(0.0, min(config.AMBIENT_MAX_VOLUME, float(amb_vol)))
+               if amb_vol not in (None, "") else None)
     # upsert with the personalization fields so the opening uses them
     lead = await db.upsert_lead({
         "phone": phone,
@@ -454,7 +455,8 @@ async def api_test_call(payload: dict, user: str = Depends(require_auth)):
                                      ambient=amb, ambient_volume=amb_vol)
     except Exception as e:
         raise HTTPException(400, f"Twilio rejected the call: {e}")
-    return {"call_sid": sid, "voice": voice, "ambient": amb or "(config default)"}
+    return {"call_sid": sid, "voice": voice, "ambient": amb or "(config default)",
+            "ambient_volume": amb_vol}
 
 
 # ---------------------------------------------------------------- dialer API
@@ -493,6 +495,7 @@ async def api_config(user: str = Depends(require_auth)):
         "ambient_enabled": config.AMBIENT_ENABLED,
         "ambient_default": config.AMBIENT_SOUND,
         "ambient_volume": config.AMBIENT_VOLUME,
+        "ambient_max_volume": config.AMBIENT_MAX_VOLUME,
     }
 
 
@@ -505,7 +508,8 @@ async def api_ambient_preview(name: str, volume: Optional[float] = None,
         path = ambient.bed_path(name)          # also the name whitelist
     except KeyError:
         raise HTTPException(404, "unknown background sound")
-    vol = config.AMBIENT_VOLUME if volume is None else max(0.0, min(1.0, volume))
+    vol = (config.AMBIENT_VOLUME if volume is None
+           else max(0.0, min(config.AMBIENT_MAX_VOLUME, volume)))
     with wave.open(str(path)) as wf:
         sr = wf.getframerate()
         bed = array.array("h", wf.readframes(min(wf.getnframes(), 10 * sr)))

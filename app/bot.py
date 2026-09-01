@@ -82,14 +82,17 @@ def _transport_params(ambient_bed: str = "", ambient_volume=None) -> FastAPIWebs
         # touched by OutputGain — AMBIENT_VOLUME is its only level control.
         try:
             from pipecat.audio.mixers.soundfile_mixer import SoundfileMixer
-            vol = config.AMBIENT_VOLUME if ambient_volume is None else float(ambient_volume)
+            asked = config.AMBIENT_VOLUME if ambient_volume is None else float(ambient_volume)
+            vol = max(0.0, min(config.AMBIENT_MAX_VOLUME, asked))
             kwargs["audio_out_mixer"] = SoundfileMixer(
                 sound_files={ambient_bed: str(ambient.bed_path(ambient_bed))},
                 default_sound=ambient_bed,
-                volume=max(0.0, min(1.0, vol)),
+                volume=vol,
                 loop=True,
             )
-            step("15B-AMBIENT", f"background sound '{ambient_bed}' at volume {vol:.2f}")
+            step("15B-AMBIENT", f"background sound '{ambient_bed}' at volume {vol:.2f}"
+                 + (f" (asked {asked:.2f} — capped: a bed that loud garbles both "
+                    f"her speech and the owner's)" if asked > vol else ""))
         except Exception as e:
             # Never let a background nicety kill a call (cf. RNNoise on the VPS).
             step("15B-AMBIENT", f"disabled — could not load bed '{ambient_bed}': {e}")
