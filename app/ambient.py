@@ -132,6 +132,60 @@ def _normalise(x: np.ndarray) -> np.ndarray:
     return np.clip(x, -32768, 32767).astype(np.int16)
 
 
+# ------------------------------------------------ real recordings -> loops
+
+def _resample(x: np.ndarray, sr_in: int, sr_out: int) -> np.ndarray:
+    """Band-limited resample. Truncating the spectrum is the anti-alias filter,
+    which matters going 48k -> 8k: without it, traffic and chatter fold back as
+    metallic hiss."""
+    if sr_in == sr_out:
+        return x
+    n_out = int(round(len(x) * sr_out / sr_in))
+    X = np.fft.rfft(x)
+    Y = np.zeros(n_out // 2 + 1, dtype=complex)
+    keep = min(len(X), len(Y))
+    Y[:keep] = X[:keep]
+    return np.fft.irfft(Y, n_out) * (n_out / len(x))
+
+
+def _steadiest_window(x: np.ndarray, sr: int, seconds: int) -> np.ndarray:
+    """Pick the stretch that sounds most like a room and least like an event.
+
+    Field recordings contain doors, shouts and passing sirens; under a sales
+    call those read as something happening, which is worse than silence."""
+    need = seconds * sr
+    if len(x) <= need:
+        return np.pad(x, (0, max(0, need - len(x))), mode="wrap")
+    W = int(sr * 0.05)
+    frames = x[:len(x) // W * W].reshape(-1, W)
+    rms = np.sqrt((frames ** 2).mean(axis=1)) + 1e-9
+    per_win = need // W
+    # score = spikiness of the window (peak vs typical); lower is steadier
+    scores = [(np.percentile(rms[i:i + per_win], 99) / np.median(rms[i:i + per_win]), i)
+              for i in range(0, len(rms) - per_win, max(1, per_win // 4))]
+    _, best = min(scores)
+    start = best * W
+    return x[start:start + need]
+
+
+def prepare_bed(x: np.ndarray, sr: int, seconds: int = SECONDS) -> np.ndarray:
+    """Turn any recording into a seamless 8 kHz mono loop at our standard level."""
+    if x.ndim > 1:
+        x = x.mean(axis=1)
+    x = np.asarray(x, dtype=np.float64)
+    x = _steadiest_window(x, sr, seconds + 1)          # +1s of crossfade material
+    x = _resample(x, sr, SR)
+    n, fade = seconds * SR, SR // 2
+    if len(x) < n + fade:
+        x = np.pad(x, (0, n + fade - len(x)), mode="wrap")
+    # Real recordings do not wrap around like synthesized ones, so blend the
+    # tail back over the head — otherwise the loop clicks every 20 seconds.
+    ramp = np.linspace(0.0, 1.0, fade)
+    out = x[:n].copy()
+    out[:fade] = x[:fade] * ramp + x[n:n + fade] * (1 - ramp)
+    return _normalise(out)
+
+
 # ---------------------------------------------------------------------- beds
 
 @_bed("quiet", "Quiet room — barely-there room tone, just enough to feel live")
@@ -188,16 +242,40 @@ def _street(rng):
 _SEEDS = {"quiet": 11, "office": 22, "call_center": 33, "cafe": 44, "street": 55}
 
 def available() -> list[str]:
-    """Bed names, in a sensible order for a dropdown."""
-    return ["quiet", "office", "call_center", "cafe", "street"]
+    """Bed names, in a sensible order for a dropdown: anything you recorded
+    yourself first, then the built-ins."""
+    custom = sorted(p.stem for p in CUSTOM_DIR.glob("*.wav")) if CUSTOM_DIR.exists() else []
+    return custom + ["quiet", "office", "call_center", "cafe", "street"]
+
+
+def describe(name: str) -> str:
+    if name in BEDS:
+        return BEDS[name] + (" — real recording" if (RECORDED_DIR / f"{name}.wav").exists()
+                             else " — synthesized")
+    return "Your own recording"
+
+
+def is_recorded(name: str) -> bool:
+    return ((CUSTOM_DIR / f"{name}.wav").exists()
+            or (RECORDED_DIR / f"{name}.wav").exists())
+
+
+RECORDED_DIR = Path(__file__).parent / "ambience"      # real recordings, in git
+CUSTOM_DIR = Path(__file__).parent.parent / "ambient_custom"   # uploaded on the server
 
 
 def bed_path(name: str) -> Path:
-    """Path to the 8 kHz mono WAV for `name`, generating it on first use.
+    """Path to the 8 kHz mono WAV for `name`.
 
+    A real recording always wins over the synthesized version: noise shaped to
+    look like a room still sounds like noise, and owners hear the difference.
     Raises KeyError for an unknown name (callers pass user input straight in,
     so this doubles as the whitelist).
     """
+    for folder in (CUSTOM_DIR, RECORDED_DIR):
+        real = folder / f"{name}.wav"
+        if real.exists():
+            return real
     if name not in _BUILDERS:
         raise KeyError(name)
     CACHE_DIR.mkdir(exist_ok=True)
@@ -214,6 +292,20 @@ def bed_path(name: str) -> Path:
             wf.setframerate(SR)
             wf.writeframes(pcm.tobytes())
         tmp.replace(path)   # atomic: two calls starting at once can't tear it
+    return path
+
+
+def save_custom(name: str, x: np.ndarray, sr: int) -> Path:
+    """Store an uploaded recording as a ready-to-play bed."""
+    CUSTOM_DIR.mkdir(exist_ok=True)
+    path = CUSTOM_DIR / f"{name}.wav"
+    tmp = path.with_suffix(".tmp")
+    with wave.open(str(tmp), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(SR)
+        wf.writeframes(prepare_bed(x, sr).tobytes())
+    tmp.replace(path)
     return path
 
 

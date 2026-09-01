@@ -234,6 +234,12 @@
     </div>
     <audio id="t_amb_audio" style="display:none"></audio>
     <div class="row" style="margin-top:8px">
+      <span class="muted">Own recording:</span>
+      <input id="t_ambfile" type="file" accept="audio/*" style="max-width:230px">
+      <input id="t_ambname" placeholder="name (e.g. my_office)" style="width:160px">
+      <button class="btn" onclick="uploadAmbient()">⬆ Add background</button>
+    </div>
+    <div class="row" style="margin-top:8px">
       <input id="t_prop" placeholder="Property name (e.g. Sri Sai PG)" style="width:210px">
       <select id="t_type">
         <option value="">Type…</option><option>PG</option><option>hostel</option>
@@ -495,6 +501,20 @@ async function initTest(){
     if (bed !== null) $('#t_ambient').value = bed;
     if (vol !== null) $('#t_ambvol').value = vol;
   } catch (e) {}
+}
+async function uploadAmbient(){
+  const f = $('#t_ambfile').files[0];
+  if(!f){ toast('Pick an audio file first'); return; }
+  const fd = new FormData(); fd.append('file', f);
+  const name = ($('#t_ambname').value || 'my_office').trim();
+  const r = await fetch('/api/ambient/upload?name='+encodeURIComponent(name),
+                        {method:'POST', body:fd});
+  const j = await r.json();
+  if(!r.ok){ toast('Upload failed: ' + (j.detail||'')); return; }
+  toast(`Background "${j.name}" added from ${j.source_seconds}s of audio`);
+  await initTest();
+  $('#t_ambient').value = j.name;
+  previewAmbient(true);
 }
 function previewAmbient(play){
   const a = $('#t_amb_audio'), bed = $('#t_ambient').value;

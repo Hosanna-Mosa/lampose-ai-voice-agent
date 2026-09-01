@@ -491,7 +491,9 @@ async def api_config(user: str = Depends(require_auth)):
         "twilio_number": config.TWILIO_NUMBER,
         "transfer_number": config.SALES_TRANSFER_NUMBER,
         "model": config.ANTHROPIC_MODEL,
-        "ambient_beds": [{"name": n, "label": ambient.BEDS[n]} for n in ambient.available()],
+        "ambient_beds": [{"name": n, "label": ambient.describe(n),
+                          "recorded": ambient.is_recorded(n)}
+                         for n in ambient.available()],
         "ambient_enabled": config.AMBIENT_ENABLED,
         "ambient_default": config.AMBIENT_SOUND,
         "ambient_volume": config.AMBIENT_VOLUME,
@@ -501,6 +503,36 @@ async def api_config(user: str = Depends(require_auth)):
         "tts_pace": config.TTS_PACE,
         "tts_temperature": config.TTS_TEMPERATURE,
     }
+
+
+_BED_NAME = re.compile(r"^[a-z0-9_]{2,24}$")
+
+
+@app.post("/api/ambient/upload")
+async def api_ambient_upload(file: UploadFile, name: str = "my_office",
+                             user: str = Depends(require_auth)):
+    """Add your own background recording — the most natural bed there is.
+
+    Record 30+ seconds of the room you want callers to hear (a phone voice
+    memo is fine), upload it here, and it becomes a seamless 8 kHz loop."""
+    name = name.strip().lower().replace(" ", "_")
+    if not _BED_NAME.match(name):
+        raise HTTPException(400, "name must be 2-24 characters: a-z, 0-9, underscore")
+    raw = await file.read()
+    if len(raw) > 60 * 1024 * 1024:
+        raise HTTPException(400, "file too large (60MB max)")
+    try:
+        import soundfile as sf
+        data, sr = sf.read(io.BytesIO(raw), dtype="float64")
+    except Exception as e:
+        raise HTTPException(400, f"could not read that audio ({e}). WAV, FLAC, "
+                                 f"OGG and MP3 work; on a phone, export as WAV if unsure.")
+    if len(data) < sr * 5:
+        raise HTTPException(400, "recording is too short — 30 seconds or more works best")
+    path = await asyncio.to_thread(ambient.save_custom, name, data, sr)
+    step("AMBIENT-UPLOAD", f"custom background '{name}' saved from {file.filename} "
+         f"({len(data)/sr:.0f}s @ {sr}Hz -> 20s loop at 8kHz)")
+    return {"name": name, "path": path.name, "source_seconds": round(len(data) / sr, 1)}
 
 
 @app.get("/api/voice-sample")

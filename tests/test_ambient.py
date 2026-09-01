@@ -47,8 +47,36 @@ for name in ambient.available():
     check(f"{name}: no clipping (peak {np.abs(x).max():.0f})", np.abs(x).max() < 32000)
     check(f"{name}: loop seam clean ({seam:.2f}x a normal step)", seam < 3.0)
 
+print("\nA2. Real recordings are used in place of the synthesized fallback")
+for name in ("office", "street"):
+    check(f"{name}: ships as a real recording", ambient.is_recorded(name),
+          ambient.describe(name))
+    meta, pcm = read_bed(name)
+    x = pcm.astype(np.float64)
+    seam = abs(x[0] - x[-1]) / (np.abs(np.diff(x)).mean() + 1e-9)
+    check(f"{name}: 8kHz mono 20s loop at our level", meta == (1, 2, 8000)
+          and len(x) == 8000 * 20 and 1900 <= np.sqrt((x ** 2).mean()) <= 2100)
+    check(f"{name}: crossfaded loop does not click ({seam:.2f}x)", seam < 3.0)
+
+print("\nA3. Any recording can be turned into a bed (the upload path)")
+rng = np.random.default_rng(7)
+for sr_in, secs, label in ((44100, 40, "phone memo 44.1kHz"), (48000, 25, "48kHz stereo"),
+                           (8000, 30, "already 8kHz")):
+    raw = rng.standard_normal(sr_in * secs) * 0.05
+    if label.endswith("stereo"):
+        raw = np.stack([raw, raw], axis=1)
+    bed = ambient.prepare_bed(raw, sr_in)
+    seam = abs(float(bed[0]) - float(bed[-1])) / (np.abs(np.diff(bed.astype(float))).mean() + 1e-9)
+    check(f"{label} -> 20s 8kHz loop, level matched, no click",
+          len(bed) == 8000 * 20 and 1900 <= np.sqrt((bed.astype(float) ** 2).mean()) <= 2100
+          and seam < 3.0)
+
 print("\nB. Deterministic across machines (same bytes when regenerated)")
-for name in ("office", "call_center"):
+for name in ("quiet", "call_center"):
+    # Only ever delete a SYNTHESIZED bed: bed_path now resolves real
+    # recordings first, and an earlier version of this test happily unlinked
+    # the committed app/ambience/office.wav.
+    assert not ambient.is_recorded(name), f"{name} is a real recording — do not unlink it"
     before = ambient.bed_path(name).read_bytes()
     ambient.bed_path(name).unlink()
     after = ambient.bed_path(name).read_bytes()
