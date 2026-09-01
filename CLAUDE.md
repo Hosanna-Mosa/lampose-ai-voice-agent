@@ -41,6 +41,29 @@ journalctl -u lampose-voice --since "10 min ago" | grep -v STEP   # errors
   fix in this project is named after the call that exposed it (ACVPS6, 8, 10…).
 - Ask before changing `app/prompts.py` — it changes what a real owner hears.
 
+## Session continuity
+
+The whole build-and-tune history lives in one Claude Code session:
+
+```
+13767859-a0f3-4121-aae1-ad50e2f99ec3
+```
+
+```bash
+claude --resume 13767859-a0f3-4121-aae1-ad50e2f99ec3   # this exact session
+claude --resume        # pick from a list for this folder
+claude --continue      # the most recent session here
+```
+
+`/resume` switches session from inside a running one; the VS Code panel has the
+same picker. The transcript is a plain file at
+`~/.claude/projects/-Users-hosanna-LAMPOSE-ai-voice--1/<session-id>.jsonl` —
+worth copying somewhere safe, since clearing `~/.claude` deletes it.
+
+A resumed conversation is summarised as it grows, so fine detail compresses.
+**These docs, not the transcript, are the durable record** — if something
+matters later, write it here rather than relying on the chat.
+
 ## Landmines (each cost hours)
 
 - `create_transport()` is what parses Twilio's handshake and fills
