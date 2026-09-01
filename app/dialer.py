@@ -13,9 +13,10 @@ from app.logsetup import step
 from app.prompts import build_opening_line
 
 
-async def _pregen_greeting(lead: dict, voice: str):
+async def _pregen_greeting(lead: dict, voice: str, pace=None, temperature=None):
     try:
-        clip = await FillerAudio(voice or config.TTS_VOICE).get(build_opening_line(lead))
+        clip = await FillerAudio(voice or config.TTS_VOICE, pace=pace,
+                                 temperature=temperature).get(build_opening_line(lead))
         if clip:
             step("09-GREETING-PREGEN", f"greeting audio cached before answer "
                  f"({len(clip)//16}ms, voice={voice or config.TTS_VOICE})")
@@ -55,7 +56,8 @@ def in_calling_hours() -> bool:
 
 
 async def dial_lead(lead: dict, direction: str = "outbound", voice: str = "",
-                    ambient: str = "", ambient_volume=None) -> str:
+                    ambient: str = "", ambient_volume=None,
+                    pace=None, temperature=None) -> str:
     """Originate one call to a lead. Returns the Twilio call SID."""
     phone = lead["phone"]
 
@@ -73,10 +75,11 @@ async def dial_lead(lead: dict, direction: str = "outbound", voice: str = "",
 
     step("10-DIAL-START", f"calling {phone} from {config.TWILIO_NUMBER} ({direction})")
     # call preparation: greeting audio is synthesized while the phone rings
-    asyncio.create_task(_pregen_greeting(lead, voice))
+    asyncio.create_task(_pregen_greeting(lead, voice, pace, temperature))
     call = await asyncio.to_thread(_create)
     await db.create_call(call.sid, lead["_id"], direction, phone, voice=voice,
-                         ambient=ambient, ambient_volume=ambient_volume)
+                         ambient=ambient, ambient_volume=ambient_volume,
+                         pace=pace, temperature=temperature)
     await db.update_lead(lead["_id"], {"status": "dialing"})
     step("10-DIAL-CREATED", f"Twilio accepted, call_sid={call.sid} — phone should ring now")
     return call.sid

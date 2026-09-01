@@ -62,10 +62,11 @@ from pipecat.services.sarvam.tts import SarvamTTSService
 from pipecat.transcriptions.language import Language
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
-from app import ambient, config, db
+from app import ambient, config, db, voices
 from app.logsetup import step
 from app.filler import FillerAudio, pick_phrase
 from app.prompts import build_opening_line, build_system_prompt
+from app.telugu_text import for_tts
 from app.tools import CallState, build_tools
 from app.turn_taking import TeluguFastTurnStopStrategy, TurnTimes
 
@@ -288,8 +289,14 @@ class SarvamTTSFlushShort(SarvamTTSService):
         self._short_flushes = 0
 
     async def _send_text(self, text: str):
-        await super()._send_text(text)
-        if len(text.strip()) < self.SHORT_CHARS:
+        # Last-mile clean-up: digits become the words a person would say, and
+        # half-transliterated tokens ("ఎight") are repaired. The LLM context and
+        # the transcript keep the original text — only the audio changes.
+        spoken, fixes = for_tts(text)
+        if fixes:
+            step("TEXT-FIX", "; ".join(fixes))
+        await super()._send_text(spoken)
+        if len(spoken.strip()) < self.SHORT_CHARS:
             self._short_flushes += 1
             await self.flush_audio()
 
@@ -711,23 +718,26 @@ async def run_call(runner_args: RunnerArguments):
              f"(mode={config.STT_MODE or 'default'})")
 
         voice = (call_doc or {}).get("voice") or config.TTS_VOICE
+        pace = (call_doc or {}).get("pace") or config.TTS_PACE
+        temperature = (call_doc or {}).get("temperature")
+        if temperature is None:
+            temperature = (voices.mode_temperature(config.TTS_EXPRESSIVENESS)
+                           or config.TTS_TEMPERATURE)
         tts = SarvamTTSFlushShort(
             api_key=config.SARVAM_API_KEY,
             settings=SarvamTTSService.Settings(
                 model=config.TTS_MODEL,
                 voice=voice,
                 language=Language.TE_IN,
-                pace=config.TTS_PACE,
-            **({"temperature": config.TTS_TEMPERATURE}
-               if config.TTS_TEMPERATURE is not None else {}),
+                pace=pace,
+            **({"temperature": temperature} if temperature is not None else {}),
                 # 30 = proven on live calls. 10 silently produced NO audio from
                 # Sarvam (call ACVPS5: every TTS reply lost). Do not lower blindly.
                 min_buffer_size=30,
             ),
         )
-        step("15-TTS-READY", f"Sarvam {config.TTS_MODEL} voice={voice} pace={config.TTS_PACE}"
-         + (f" temperature={config.TTS_TEMPERATURE}"
-            if config.TTS_TEMPERATURE is not None else ""))
+        step("15-TTS-READY", f"Sarvam {config.TTS_MODEL} voice={voice} pace={pace}"
+         + (f" expressiveness={temperature}" if temperature is not None else ""))
 
         system_prompt = build_system_prompt(lead, direction)
         llm = AnthropicLLMService(
@@ -820,7 +830,7 @@ async def run_call(runner_args: RunnerArguments):
         )
         state.worker = worker
 
-        filler_audio = FillerAudio(voice)
+        filler_audio = FillerAudio(voice, pace=pace, temperature=temperature)
         if config.FILLER_ENABLED:
             asyncio.create_task(filler_audio.prewarm())  # clips ready before first use
         filler_used_turns: set = set()

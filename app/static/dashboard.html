@@ -205,14 +205,15 @@
       <label class="muted">Pace
         <input id="v_pace" type="number" min="0.5" max="2" step="0.05" style="width:76px"></label>
       <label class="muted">Expressiveness
-        <input id="v_temp" type="number" min="0.01" max="2" step="0.1" placeholder="0.6"
-               style="width:76px"></label>
+        <select id="v_mode"></select></label>
       <label class="muted" style="flex:1; min-width:280px">Sample line
         <input id="v_text" style="width:100%"></label>
     </div>
-    <p class="muted" style="margin-top:6px">Pace 1.15 (our current setting) speaks
-      27% faster than natural — the single biggest reason a voice sounds rushed
-      rather than human. Try 1.0 next to it.</p>
+    <p class="muted" style="margin-top:6px">Pace 1.0 is how the voice was recorded;
+      1.15 speaks 27% faster and is the main thing that reads as a machine.
+      Expressiveness is Sarvam's <code>temperature</code> (0.01–1.0) — there are no
+      hidden "warm/energetic" model settings, so these ten names are presets over
+      that one dial, from a flat reader to an animated sales voice.</p>
     <div id="voiceGrid" class="row" style="flex-wrap:wrap; gap:8px; margin-top:12px"></div>
     <audio id="v_audio" style="display:none"></audio>
   </div>
@@ -225,6 +226,9 @@
     <div class="row">
       <input id="t_phone" placeholder="Your number (+91…)" style="width:170px">
       <select id="t_voice"></select>
+      <select id="t_mode" title="Expressiveness for this call"></select>
+      <input id="t_pace" type="number" min="0.5" max="2" step="0.05" style="width:74px"
+             title="Speaking pace for this call (1.0 = as recorded)">
       <select id="t_ambient" onchange="previewAmbient(false)"></select>
       <input id="t_ambvol" type="number" min="0" max="0.25" step="0.02" style="width:78px"
              title="Background volume — 0.06-0.12 sounds natural; louder garbles speech"
@@ -445,7 +449,9 @@ let VOICE_CFG = null;
 async function initVoices(){
   const cfg = VOICE_CFG = await api('/api/config');
   $('#v_pace').value = cfg.tts_pace;
-  $('#v_temp').value = cfg.tts_temperature ?? '';
+  $('#v_mode').innerHTML = cfg.expressiveness.map(e=>
+    `<option value="${e.name}" title="${e.note}"${e.name===cfg.expressiveness_default?' selected':''}
+     >${e.name} (${e.temperature})</option>`).join('');
   $('#v_text').value = cfg.sample_text;
   let fav = [];
   try { fav = JSON.parse(localStorage.getItem('lampose_fav_voices') || '[]'); } catch(e){}
@@ -463,7 +469,7 @@ async function playVoice(name, btn){
   const a = $('#v_audio');
   const q = new URLSearchParams({voice:name, sr:$('#v_sr').value, pace:$('#v_pace').value,
                                 text:$('#v_text').value});
-  if($('#v_temp').value) q.set('temperature', $('#v_temp').value);
+  q.set('expressiveness', $('#v_mode').value);
   btn.textContent = '…';
   try {
     const r = await fetch('/api/voice-sample?'+q);
@@ -493,6 +499,10 @@ async function initTest(){
     cfg.ambient_beds.map(b=>`<option value="${b.name}" title="${b.label}">${b.label}</option>`).join('');
   $('#t_ambvol').value = cfg.ambient_volume;
   $('#t_ambvol').max = cfg.ambient_max_volume;
+  $('#t_pace').value = cfg.tts_pace;
+  $('#t_mode').innerHTML = cfg.expressiveness.map(e=>
+    `<option value="${e.name}" title="${e.note}"${e.name===cfg.expressiveness_default?' selected':''}
+     >${e.name}</option>`).join('');
   // Remember the last pick: reloading the page used to reset the dropdown to
   // "default (off)", so the next call went out with no background at all.
   try {
@@ -532,8 +542,10 @@ async function testCall(){
     body:JSON.stringify({phone:$('#t_phone').value, voice:$('#t_voice').value,
       property_name:$('#t_prop').value, property_type:$('#t_type').value,
       area:$('#t_area').value, rating:$('#t_rating').value, name:$('#t_name').value,
-      ambient:$('#t_ambient').value, ambient_volume:$('#t_ambvol').value})});
-  toast(`Calling you — voice "${j.voice}", background ${j.ambient||'off'}` +
+      ambient:$('#t_ambient').value, ambient_volume:$('#t_ambvol').value,
+      pace:$('#t_pace').value, expressiveness:$('#t_mode').value})});
+  toast(`Calling you — ${j.voice}, ${j.expressiveness}, pace ${j.pace}, ` +
+        `background ${j.ambient||'off'}` +
         (j.ambient_volume!=null ? ` at ${j.ambient_volume}` : '') + '…');
 }
 loadOverview(); initTest(); initVoices();

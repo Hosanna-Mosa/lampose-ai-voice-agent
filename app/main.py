@@ -438,6 +438,12 @@ async def api_test_call(payload: dict, user: str = Depends(require_auth)):
     amb_vol = payload.get("ambient_volume")
     amb_vol = (max(0.0, min(config.AMBIENT_MAX_VOLUME, float(amb_vol)))
                if amb_vol not in (None, "") else None)
+    pace = payload.get("pace")
+    pace = max(0.5, min(2.0, float(pace))) if pace not in (None, "") else None
+    mode = (payload.get("expressiveness") or "").strip().lower()
+    temperature = voices.mode_temperature(mode) if mode else None
+    if mode and temperature is None:
+        raise HTTPException(400, f"unknown expressiveness '{mode}'")
     # upsert with the personalization fields so the opening uses them
     lead = await db.upsert_lead({
         "phone": phone,
@@ -452,11 +458,13 @@ async def api_test_call(payload: dict, user: str = Depends(require_auth)):
          f"property='{payload.get('property_name', '')}'")
     try:
         sid = await dialer.dial_lead(lead, direction="test", voice=voice,
-                                     ambient=amb, ambient_volume=amb_vol)
+                                     ambient=amb, ambient_volume=amb_vol,
+                                     pace=pace, temperature=temperature)
     except Exception as e:
         raise HTTPException(400, f"Twilio rejected the call: {e}")
     return {"call_sid": sid, "voice": voice, "ambient": amb or "(config default)",
-            "ambient_volume": amb_vol}
+            "ambient_volume": amb_vol, "pace": pace or config.TTS_PACE,
+            "expressiveness": mode or config.TTS_EXPRESSIVENESS}
 
 
 # ---------------------------------------------------------------- dialer API
@@ -502,6 +510,9 @@ async def api_config(user: str = Depends(require_auth)):
         "sample_text": voices.SAMPLE_TEXT,
         "tts_pace": config.TTS_PACE,
         "tts_temperature": config.TTS_TEMPERATURE,
+        "expressiveness": [{"name": n, "temperature": t, "note": d}
+                           for n, t, d in voices.EXPRESSIVENESS],
+        "expressiveness_default": config.TTS_EXPRESSIVENESS,
     }
 
 
@@ -537,13 +548,18 @@ async def api_ambient_upload(file: UploadFile, name: str = "my_office",
 
 @app.get("/api/voice-sample")
 async def api_voice_sample(voice: str, text: str = "", pace: Optional[float] = None,
-                           temperature: Optional[float] = None, sr: int = 8000,
+                           temperature: Optional[float] = None,
+                           expressiveness: str = "", sr: int = 8000,
                            user: str = Depends(require_auth)):
     """One voice saying the sample line, cached. sr=8000 is what a phone
     delivers; sr=24000 is what a laptop demo plays — the same voice sounds far
     better at 24k, which is most of why other platforms' demos impress."""
     if sr not in (8000, 16000, 24000):
         raise HTTPException(400, "sample rate must be 8000, 16000 or 24000")
+    if expressiveness:
+        temperature = voices.mode_temperature(expressiveness)
+        if temperature is None:
+            raise HTTPException(400, f"unknown expressiveness '{expressiveness}'")
     try:
         wav = await voices.sample(voice, text=text, pace=pace,
                                   temperature=temperature, sample_rate=sr)

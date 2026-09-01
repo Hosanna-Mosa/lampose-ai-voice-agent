@@ -26,10 +26,16 @@ STT_LANGUAGE = _get("STT_LANGUAGE", "te-IN")
 STT_MODE = _get("STT_MODE")  # "", "codemix", "transcribe", ...
 TTS_VOICE = _get("TTS_VOICE", "kavya")
 TTS_MODEL = _get("TTS_MODEL", "bulbul:v3")
-TTS_PACE = float(_get("TTS_PACE", "1.15"))
+# 1.0 is how the voice was recorded. We ran 1.15 to save a second on long
+# replies; measured, that speaks 27% faster than natural and is the main thing
+# that reads as a machine. Replies are short now, so the second is cheap.
+TTS_PACE = float(_get("TTS_PACE", "1.0"))
 # bulbul:v3 expressiveness (0.01-2.0, Sarvam default 0.6). Higher = livelier
 # prosody, lower = flatter and more predictable. Unset = leave it to Sarvam.
 TTS_TEMPERATURE = float(_get("TTS_TEMPERATURE", "0")) or None
+# Named preset over temperature (see app/voices.py EXPRESSIVENESS). Wins over
+# TTS_TEMPERATURE when both are set.
+TTS_EXPRESSIVENESS = _get("TTS_EXPRESSIVENESS", "warm").strip().lower() or None
 OUTPUT_GAIN_DB = float(_get("OUTPUT_GAIN_DB", "-5"))  # bot audio level; was peaking at -0.6 dBFS
 
 # Anthropic

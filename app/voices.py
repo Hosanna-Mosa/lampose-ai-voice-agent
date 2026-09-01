@@ -37,6 +37,32 @@ ALL.update({v: ("bulbul:v3", "male") for v in V3_MALE})
 ALL.update({v: ("bulbul:v2", "female") for v in V2_FEMALE})
 ALL.update({v: ("bulbul:v2", "male") for v in V2_MALE})
 
+# Expressiveness ("modes"). Sarvam has no warm/energetic style tokens — what
+# every platform calls a mode is really a preset over the knobs that exist. For
+# bulbul:v3 that is `temperature`, whose real range is 0.01-1.0 (the docs say
+# 2.0; anything above 1.0 is rejected with a validation error — measured).
+EXPRESSIVENESS = [
+    ("flat", 0.10, "Reads it out — no colour at all"),
+    ("calm", 0.20, "Unhurried, even, reassuring"),
+    ("steady", 0.30, "Businesslike and consistent"),
+    ("warm", 0.45, "Friendly and soft — good for cold calls"),
+    ("friendly", 0.55, "Chatty, a little more movement"),
+    ("natural", 0.65, "Closest to ordinary conversation"),
+    ("bright", 0.75, "Upbeat, forward-leaning"),
+    ("lively", 0.85, "Animated, more pitch movement"),
+    ("energetic", 0.92, "Sales-floor energy"),
+    ("excited", 1.00, "Maximum variation — can wander"),
+]
+MODES = {name: temp for name, temp, _ in EXPRESSIVENESS}
+
+
+def mode_temperature(mode: str | None):
+    """Temperature for a named mode; None means leave it to Sarvam."""
+    if not mode:
+        return None
+    return MODES.get(str(mode).strip().lower())
+
+
 # The line owners actually hear first — judge voices on the real script.
 SAMPLE_TEXT = ("హలో నమస్తే సర్! మీరు Sri Sai owner గారేనా? "
                "నేను Kavya, LAMPOSE నుంచి — ఒక్క నిమిషం మాట్లాడొచ్చా సర్?")

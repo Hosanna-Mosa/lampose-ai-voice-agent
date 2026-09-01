@@ -128,7 +128,8 @@ async def list_leads(status: Optional[str] = None, limit: int = 500) -> list:
 
 async def create_call(call_sid: str, lead_id, direction: str, phone: str,
                       voice: str = "", status: str = "initiated",
-                      ambient: str = "", ambient_volume=None) -> dict:
+                      ambient: str = "", ambient_volume=None,
+                      pace=None, temperature=None) -> dict:
     doc = {
         "call_sid": call_sid,
         "lead_id": lead_id,
@@ -139,6 +140,9 @@ async def create_call(call_sid: str, lead_id, direction: str, phone: str,
         # otherwise a bed name (lets the dashboard audition beds live)
         "ambient": ambient,
         "ambient_volume": ambient_volume,
+        # voice tuning for THIS call (None = follow config)
+        "pace": pace,
+        "temperature": temperature,
         "status": status,
         "started_at": now(),
         "ended_at": None,

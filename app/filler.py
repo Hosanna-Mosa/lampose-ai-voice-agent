@@ -17,6 +17,7 @@ import aiohttp
 from loguru import logger
 
 from app import config
+from app.telugu_text import for_tts
 
 CACHE_DIR = Path(__file__).parent.parent / "filler_cache"
 
@@ -37,12 +38,19 @@ def pick_phrase(last_user_text: str, tool_recent: bool) -> tuple:
 class FillerAudio:
     """Synthesizes and caches 8kHz mono PCM clips per (voice, phrase)."""
 
-    def __init__(self, voice: str):
+    def __init__(self, voice: str, pace: float | None = None, temperature=None):
         self._voice = voice
+        # The greeting used to be synthesized with no pace at all while live
+        # speech ran at 1.15, so the first sentence an owner heard was slower
+        # than everything after it.
+        self._pace = config.TTS_PACE if pace is None else pace
+        self._temperature = temperature
         self._mem: dict = {}
 
     def _key(self, phrase: str) -> str:
-        return hashlib.md5(f"{self._voice}|{phrase}".encode()).hexdigest()
+        return hashlib.md5(
+            f"{self._voice}|{self._pace}|{self._temperature}|{phrase}".encode()
+        ).hexdigest()
 
     async def get(self, phrase: str) -> Optional[bytes]:
         key = self._key(phrase)
@@ -59,11 +67,14 @@ class FillerAudio:
                     "https://api.sarvam.ai/text-to-speech",
                     headers={"api-subscription-key": config.SARVAM_API_KEY},
                     json={
-                        "text": phrase,
+                        "text": for_tts(phrase)[0],
                         "target_language_code": "te-IN",
                         "speaker": self._voice,
                         "model": config.TTS_MODEL,
                         "speech_sample_rate": 8000,
+                        "pace": self._pace,
+                        **({"temperature": self._temperature}
+                           if self._temperature is not None else {}),
                     },
                     timeout=aiohttp.ClientTimeout(total=8),
                 )

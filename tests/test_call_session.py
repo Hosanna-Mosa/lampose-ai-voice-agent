@@ -79,7 +79,8 @@ captured = {}
 
 async def one_call(sid):
     return {"direction": "test", "lead_id": None, "voice": "kavya",
-            "ambient": "cafe", "ambient_volume": 0.12}
+            "ambient": "cafe", "ambient_volume": 0.12,
+            "pace": 1.0, "temperature": 0.45}
 
 
 def capture_transport(runner_args, params_map):
