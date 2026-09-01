@@ -62,21 +62,50 @@ from pipecat.services.sarvam.tts import SarvamTTSService
 from pipecat.transcriptions.language import Language
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
-from app import config, db
+from app import ambient, config, db
 from app.logsetup import step
 from app.filler import FillerAudio, pick_phrase
 from app.prompts import build_opening_line, build_system_prompt
 from app.tools import CallState, build_tools
 from app.turn_taking import TeluguFastTurnStopStrategy, TurnTimes
 
-def _transport_params() -> FastAPIWebsocketParams:
+def _transport_params(ambient_bed: str = "", ambient_volume=None) -> FastAPIWebsocketParams:
     kwargs = dict(audio_in_enabled=True, audio_out_enabled=True)
     if config.NOISE_FILTER:
         # RNNoise denoise on caller audio. CPU ≈0.6x realtime per call —
         # great for noisy environments, enable only when capacity allows.
         from pipecat.audio.filters.rnnoise_filter import RNNoiseFilter
         kwargs["audio_in_filter"] = RNNoiseFilter()
+    if ambient_bed:
+        # Background sound. The mixer lives INSIDE the output transport, so it
+        # plays continuously (under speech and through the gaps) and is not
+        # touched by OutputGain — AMBIENT_VOLUME is its only level control.
+        try:
+            from pipecat.audio.mixers.soundfile_mixer import SoundfileMixer
+            vol = config.AMBIENT_VOLUME if ambient_volume is None else float(ambient_volume)
+            kwargs["audio_out_mixer"] = SoundfileMixer(
+                sound_files={ambient_bed: str(ambient.bed_path(ambient_bed))},
+                default_sound=ambient_bed,
+                volume=max(0.0, min(1.0, vol)),
+                loop=True,
+            )
+            step("15B-AMBIENT", f"background sound '{ambient_bed}' at volume {vol:.2f}")
+        except Exception as e:
+            # Never let a background nicety kill a call (cf. RNNoise on the VPS).
+            step("15B-AMBIENT", f"disabled — could not load bed '{ambient_bed}': {e}")
     return FastAPIWebsocketParams(**kwargs)
+
+
+def _resolve_ambient(call_doc: Optional[dict]) -> str:
+    """Which bed this call should use: per-call choice wins, else the config
+    default, else nothing. Unknown names fall back to silence rather than
+    failing the call."""
+    choice = ((call_doc or {}).get("ambient") or "").strip().lower()
+    if choice == "off":
+        return ""
+    if choice:
+        return choice if choice in ambient.BEDS else ""
+    return config.AMBIENT_SOUND if config.AMBIENT_ENABLED else ""
 
 
 TRANSPORT_PARAMS = {"twilio": _transport_params}
@@ -596,8 +625,6 @@ async def _summarize(call_sid: str, transcript: list, state: CallState):
 
 async def run_call(runner_args: RunnerArguments):
     """Entry point per WebSocket connection from Twilio."""
-    transport = await create_transport(runner_args, TRANSPORT_PARAMS)
-
     call_data = getattr(runner_args, "call_data", None)
     call_sid = getattr(call_data, "call_id", None) or ""
     call_doc = await db.get_call_by_sid(call_sid) if call_sid else None
@@ -613,6 +640,13 @@ async def run_call(runner_args: RunnerArguments):
              f"({_ACTIVE_PIPELINES}/{config.MAX_ACTIVE_PIPELINES}) exhausted")
         return
     _ACTIVE_PIPELINES += 1
+    # Transport is built AFTER the lookup: the ambient bed is a per-call
+    # setting, and rejected sessions no longer build a transport at all.
+    ambient_bed = _resolve_ambient(call_doc)
+    transport = await create_transport(runner_args, {
+        "twilio": lambda: _transport_params(ambient_bed,
+                                            (call_doc or {}).get("ambient_volume")),
+    })
     direction = (call_doc or {}).get("direction", "inbound")
     lead: Optional[dict] = None
     if call_doc and call_doc.get("lead_id"):

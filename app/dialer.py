@@ -54,7 +54,8 @@ def in_calling_hours() -> bool:
     return config.CALLING_HOURS_START <= now_ist.hour < config.CALLING_HOURS_END
 
 
-async def dial_lead(lead: dict, direction: str = "outbound", voice: str = "") -> str:
+async def dial_lead(lead: dict, direction: str = "outbound", voice: str = "",
+                    ambient: str = "", ambient_volume=None) -> str:
     """Originate one call to a lead. Returns the Twilio call SID."""
     phone = lead["phone"]
 
@@ -74,7 +75,8 @@ async def dial_lead(lead: dict, direction: str = "outbound", voice: str = "") ->
     # call preparation: greeting audio is synthesized while the phone rings
     asyncio.create_task(_pregen_greeting(lead, voice))
     call = await asyncio.to_thread(_create)
-    await db.create_call(call.sid, lead["_id"], direction, phone, voice=voice)
+    await db.create_call(call.sid, lead["_id"], direction, phone, voice=voice,
+                         ambient=ambient, ambient_volume=ambient_volume)
     await db.update_lead(lead["_id"], {"status": "dialing"})
     step("10-DIAL-CREATED", f"Twilio accepted, call_sid={call.sid} — phone should ring now")
     return call.sid

@@ -193,8 +193,13 @@
     <div class="row">
       <input id="t_phone" placeholder="Your number (+91…)" style="width:170px">
       <select id="t_voice"></select>
+      <select id="t_ambient" onchange="previewAmbient(false)"></select>
+      <input id="t_ambvol" type="number" min="0" max="1" step="0.02" style="width:78px"
+             title="Background volume (0 = silent, 0.08 = default)" onchange="previewAmbient(false)">
+      <button class="btn" onclick="previewAmbient(true)">▶ Preview</button>
       <button class="btn" onclick="testCall()">📞 Call me</button>
     </div>
+    <audio id="t_amb_audio" style="display:none"></audio>
     <div class="row" style="margin-top:8px">
       <input id="t_prop" placeholder="Property name (e.g. Sri Sai PG)" style="width:210px">
       <select id="t_type">
@@ -209,6 +214,12 @@
       "మీరు <b>Sri Sai PG</b> owner గారేనా?" → "మీ PG ని Google Maps లో చూశాను…".
       Leave empty to hear the generic opening. Female voices: kavya, shreya, pooja, ritu ·
       Male: shubh, gokul, aditya, rohan.</p>
+    <p class="muted">Background sound plays under Kavya for the whole call so the line
+      doesn't sound dead. <b>Preview</b> plays the bed at the exact level callers hear,
+      with a line of her voice over it. The number is the volume (0.08 = default,
+      0.2 = clearly present). Your pick applies to this test call only — set
+      <code>AMBIENT_ENABLED / AMBIENT_SOUND / AMBIENT_VOLUME</code> in <code>.env</code>
+      to make it the default for every call.</p>
   </div>
 </section>
 </main>
@@ -391,13 +402,26 @@ async function initTest(){
   const cfg = await api('/api/config');
   $('#t_voice').innerHTML = cfg.voices.map(v=>
     `<option ${v===cfg.default_voice?'selected':''}>${v}</option>`).join('');
+  const dflt = cfg.ambient_enabled ? `default (${cfg.ambient_default})` : 'default (off)';
+  $('#t_ambient').innerHTML =
+    `<option value="">Background: ${dflt}</option><option value="off">Background: off</option>` +
+    cfg.ambient_beds.map(b=>`<option value="${b.name}" title="${b.label}">${b.label}</option>`).join('');
+  $('#t_ambvol').value = cfg.ambient_volume;
+}
+function previewAmbient(play){
+  const a = $('#t_amb_audio'), bed = $('#t_ambient').value;
+  a.pause();
+  if(!bed || bed==='off'){ if(play) toast('Pick a background sound to preview'); return; }
+  a.src = `/api/ambient/${bed}.wav?volume=${encodeURIComponent($('#t_ambvol').value||0.08)}`;
+  if(play) a.play();
 }
 async function testCall(){
   const j = await api('/api/test-call',{method:'POST',
     body:JSON.stringify({phone:$('#t_phone').value, voice:$('#t_voice').value,
       property_name:$('#t_prop').value, property_type:$('#t_type').value,
-      area:$('#t_area').value, rating:$('#t_rating').value, name:$('#t_name').value})});
-  toast(`Calling you with voice "${j.voice}"…`);
+      area:$('#t_area').value, rating:$('#t_rating').value, name:$('#t_name').value,
+      ambient:$('#t_ambient').value, ambient_volume:$('#t_ambvol').value})});
+  toast(`Calling you — voice "${j.voice}", background ${j.ambient||'off'}…`);
 }
 loadOverview(); initTest();
 setInterval(()=>{ if(!$('#tab-overview').classList.contains('hidden')) loadOverview(); }, 15000);

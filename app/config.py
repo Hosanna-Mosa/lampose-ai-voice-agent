@@ -88,5 +88,12 @@ RECORD_CALLS = _get("RECORD_CALLS", "true").lower() == "true"
 EMOTION_ENABLED = _get("EMOTION_ENABLED", "true").lower() == "true"
 EMOTION_LOUD_RMS = int(_get("EMOTION_LOUD_RMS", "4000"))
 
+# Ambient background sound: a faint room bed under the agent so the line does
+# not sound like dead digital silence. Beds are synthesized in app/ambient.py.
+# Off by default — audition it on a test call before enabling for everyone.
+AMBIENT_ENABLED = _get("AMBIENT_ENABLED", "false").lower() == "true"
+AMBIENT_SOUND = _get("AMBIENT_SOUND", "office")     # quiet|office|call_center|cafe|street
+AMBIENT_VOLUME = float(_get("AMBIENT_VOLUME", "0.08"))  # 0.08 ≈ 25 dB under speech
+
 # Sarvam bulbul:v3 voices offered in the dashboard test-call picker
 TEST_VOICES = ["kavya", "shreya", "pooja", "ritu", "shubh", "gokul", "aditya", "rohan"]
