@@ -12,6 +12,8 @@ area, and add a line here when you create one.
 |---|---|
 | `docs/PROJECT_CONTEXT.md` | The whole project: architecture, decisions, gotchas, latency, open items, roadmap. **Read this first.** |
 | `docs/VOICE_PIPELINE.md` | The call pipeline — commands, house rules, the landmines that each cost a broken call, and how to resume the session it was built in. |
+| `docs/DASHBOARD.md` | The dashboard and analytics — how it is built without a build step, the chart colour rules, and what each number actually means. |
+| `docs/voice_training/` | Recording a real speaker to train our own Telugu voice — the 475-sentence script, the recording protocol, and the two checkers. |
 | `docs/telugu_script.md` | The Telugu call script. |
 
 ## Before pushing anything
@@ -20,5 +22,6 @@ area, and add a line here when you create one.
 for t in tests/test_*.py; do PYTHONPATH=. ./venv/bin/python $t; done
 ```
 
-All six suites must pass. The user deploys by hand on the VPS — give them one
-command at a time, never a batch.
+All seven suites must pass. `tests/test_analytics.py` needs MongoDB running.
+The user deploys by hand on the VPS — give them one command at a time, never a
+batch.
