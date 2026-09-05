@@ -78,7 +78,29 @@ def main():
     args = ap.parse_args()
 
     rows = sentences(args.section)
-    x, sr = sf.read(args.recording, dtype="float64", always_2d=True)
+
+    recording = Path(args.recording)
+    if not recording.exists():
+        near = sorted(p.name for p in recording.parent.glob("*")
+                      if p.suffix.lower() in (".wav", ".m4a", ".mp3", ".flac", ".aac"))
+        msg = [f"Cannot find '{recording}'.", ""]
+        if near:
+            msg += ["Audio files in that folder:"] + [f"    {n}" for n in near[:10]]
+        else:
+            msg += [f"There are no audio files in {recording.parent.resolve()}.",
+                    "",
+                    "This step comes AFTER she records. Give her",
+                    "docs/voice_training/script_te.html first; when a section",
+                    "recording comes back, save it as 01_vowels.wav and run this",
+                    "again with the path to it."]
+        sys.exit("\n".join(msg))
+
+    try:
+        x, sr = sf.read(recording, dtype="float64", always_2d=True)
+    except Exception as e:
+        sys.exit(f"Cannot read '{recording}': {e}\n"
+                 f"WAV, FLAC, OGG and MP3 work. A phone's .m4a does not — "
+                 f"set the recorder app to WAV, or convert it first.")
     x = x.mean(axis=1)
 
     segs = find_segments(x, sr)
