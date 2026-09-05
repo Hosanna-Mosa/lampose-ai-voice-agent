@@ -215,6 +215,76 @@ GUIDE = [
 ]
 
 
+GUIDE_EN = [
+    ("1. What you are doing", [
+        "We are building a Telugu voice for a computer, using your voice.",
+        "All you have to do is read the sentences in this booklet out loud.",
+        "The computer will end up speaking the way you speak — so just speak "
+        "normally. You do not have to perform.",
+    ]),
+    ("2. Where to sit", [
+        "A small room is best — a bedroom with a bed, curtains and clothes in it.",
+        "Switch the fan OFF. Switch the AC OFF. This matters more than anything else.",
+        "Close the windows and the door. Put your phone on silent.",
+        "Do not record in a hall or a bathroom — the echo cannot be removed later.",
+    ]),
+    ("3. Setting up the phone", [
+        "Open the voice recorder app and set the format to WAV in its settings. "
+        "Not MP3, and not the iPhone Voice Memos app, which records .m4a.",
+        "Put the phone about one hand-span from your mouth — roughly 20 cm.",
+        "Point it slightly to the side of your mouth, not straight at it. "
+        "That keeps 'p' and 'b' sounds from thumping.",
+        "Rest the phone on a pile of books. Do not hold it — your hand makes noise.",
+    ]),
+    ("4. How to read", [
+        "Read as if you are talking to a real person on the phone.",
+        "Not like reading the news. Not like acting.",
+        "Ordinary, polite, with a slight smile in your voice.",
+        "Read the last sentence exactly the way you read the first one. "
+        "Staying the same all the way through is the single most important thing.",
+    ]),
+    ("5. How to record — the important part", [
+        "One recording for a whole section. You do NOT stop after each sentence.",
+        "Press record.",
+        "Count TWO seconds in your head. Say nothing.",
+        "Read one sentence.",
+        "Count THREE seconds in your head — one, two, three. Do NOT stop recording.",
+        "Read the next sentence. Carry on to the end of the section.",
+        "At the end, wait three seconds, then press stop.",
+        "Those three-second gaps are how we cut the recording into separate "
+        "sentences afterwards, so please keep them clear.",
+    ]),
+    ("6. If you make a mistake", [
+        "Do not worry — this happens to everyone.",
+        "Stop. Say nothing at all — not even 'sorry'.",
+        "Count three seconds.",
+        "Read the same sentence again from the beginning.",
+        "Do not stop the recording. We will remove the bad attempt.",
+    ]),
+    ("7. Rest", [
+        "Take a three-minute break every fifteen minutes.",
+        "Drink room-temperature water. Not cold water.",
+        "Do not record for more than forty-five minutes in a day — your voice tires "
+        "and starts to sound different.",
+        "There are three sittings in total. Different days are fine.",
+        "But use the same room, the same phone and the same distance every time. "
+        "If that changes, the voice changes.",
+    ]),
+    ("8. Naming the files", [
+        "Save one file per section, named after that section.",
+        "For example: 01_vowels, 02_consonants, 03_clusters, and so on.",
+        "The name to use is printed at the start of every section in this booklet.",
+    ]),
+    ("9. Two things to do before you start", [
+        "Record ten seconds of silence without speaking, so we can hear what the "
+        "room sounds like. Name it room_tone.",
+        "Then record two or three sentences and play them back.",
+        "If your voice is clear and there is no hum or echo, carry on. "
+        "If it sounds far away, move the phone a little closer.",
+    ]),
+]
+
+
 def write_guide_text(sections):
     lines = ["LAMPOSE — రికార్డింగ్ గైడ్", "=" * 50, ""]
     for title, points in GUIDE:
@@ -296,12 +366,105 @@ def write_html(sections, rows):
     return path
 
 
+def write_print_html(sections, rows):
+    """A booklet: English instructions, then every sentence. For printing/PDF."""
+    guide = "".join(
+        f"<h3>{html.escape(t)}</h3><ul>"
+        + "".join(f"<li>{html.escape(p)}</li>" for p in pts) + "</ul>"
+        for t, pts in GUIDE_EN)
+    _, total_wall = timing(rows)
+    rowsx = "".join(
+        f"<tr><td>{i:02d}_{html.escape(n)}</td><td>{len(it)}</td>"
+        f"<td>{timing(it)[1]/60:.0f} min</td></tr>"
+        for i, (n, it) in enumerate(sections.items(), 1))
+
+    body = [f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>LAMPOSE — Telugu voice recording</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600&display=swap"
+      rel="stylesheet">
+<style>
+  @page {{ size: A4; margin: 18mm 16mm; }}
+  body {{ font-family: {FONT}; color: #000; background: #fff;
+          font-size: 11.5pt; line-height: 1.65; margin: 0; }}
+  h1 {{ font-size: 20pt; margin: 0 0 2pt; }}
+  .sub {{ font-size: 10.5pt; color: #444; margin-bottom: 14pt; }}
+  h2 {{ font-size: 13pt; margin: 16pt 0 6pt; padding-top: 6pt;
+        border-top: 1.5pt solid #000; page-break-after: avoid; }}
+  h3 {{ font-size: 11.5pt; margin: 11pt 0 3pt; page-break-after: avoid; }}
+  ul {{ margin: 0 0 0 0; padding-left: 16pt; }}
+  li {{ margin: 2pt 0; page-break-inside: avoid; }}
+  table {{ border-collapse: collapse; width: 100%; font-size: 10pt; margin-top: 6pt; }}
+  td, th {{ text-align: left; padding: 2.5pt 4pt; border-bottom: .5pt solid #bbb; }}
+  .sent {{ page-break-inside: avoid; display: flex; gap: 10pt; align-items: baseline;
+           padding: 3.5pt 0; border-bottom: .4pt solid #e2e2e2; font-size: 13pt;
+           line-height: 1.9; }}
+  .id {{ font-family: Menlo, monospace; font-size: 8.5pt; color: #777; min-width: 34pt; }}
+  .howto {{ border: 1pt solid #000; padding: 6pt 10pt; margin: 8pt 0 12pt;
+            font-size: 10.5pt; background: #f4f4f4; page-break-inside: avoid; }}
+  .break {{ page-break-before: always; }}
+</style></head><body>
+<h1>Recording a Telugu voice for LAMPOSE</h1>
+<div class="sub">{len(rows)} sentences · about {total_wall/60:.0f} minutes of recording,
+split over three sittings · please read pages 1–2 before you start</div>
+{guide}
+<h3>10. How long each section takes</h3>
+<table><tr><th>Section (use this as the file name)</th><th>Sentences</th><th>Time</th></tr>
+{rowsx}</table>"""]
+
+    for i, (name, items) in enumerate(sections.items(), 1):
+        _, wall = timing(items)
+        body.append(f'<div class="break"></div><h2>{i:02d}_{name} — '
+                    f'{html.escape(TITLES.get(name, name))}</h2>')
+        body.append(f'<div class="howto"><b>Save this recording as: '
+                    f'{i:02d}_{name}</b><br>{len(items)} sentences, about '
+                    f'{wall/60:.0f} minute(s). Press record → wait 2 seconds → read a '
+                    f'sentence → wait 3 seconds → read the next one. Do not stop until '
+                    f'the section is finished.</div>')
+        for r in items:
+            body.append(f'<div class="sent"><span class="id">{r["id"]}</span>'
+                        f'<span>{html.escape(r["text"])}</span></div>')
+    body.append("</body></html>")
+    path = BASE / "recording_booklet_en.html"
+    path.write_text("\n".join(body), encoding="utf-8")
+    return path
+
+
+CHROME_PATHS = [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+]
+
+
+def write_pdf(booklet):
+    """Print the booklet to PDF with headless Chrome.
+
+    Chrome is used because it shapes Telugu correctly (HarfBuzz) and embeds the
+    font, so the PDF looks the same on a phone that has no Telugu font at all.
+    Most Python PDF libraries do not do Indic shaping and would silently produce
+    broken conjuncts.
+    """
+    import subprocess
+    chrome = next((c for c in CHROME_PATHS if Path(c).exists()), None)
+    if not chrome:
+        print("  (no Chrome found — open recording_booklet_en.html and use "
+              "File → Print → Save as PDF)")
+        return None
+    pdf = BASE / "LAMPOSE_recording_guide.pdf"
+    subprocess.run([chrome, "--headless", "--disable-gpu", "--no-pdf-header-footer",
+                    "--virtual-time-budget=10000",   # let the web font load
+                    f"--print-to-pdf={pdf}", f"file://{booklet}"],
+                   capture_output=True, check=True)
+    return pdf
+
+
 if __name__ == "__main__":
     rows = load()
     sections = by_section(rows)
     sect_dir, sess_dir = write_text_files(sections)
     page = write_html(sections, rows)
     guide = write_guide_text(sections)
+    booklet = write_print_html(sections, rows)
     print(f"{len(rows)} sentences in {len(sections)} sections\n")
     print(f"  {len(list(sect_dir.glob('*.txt')))} section files -> {sect_dir.relative_to(ROOT)}/")
     for f in sorted(sess_dir.glob("*.txt")):
@@ -309,4 +472,8 @@ if __name__ == "__main__":
                 if line[:1].isalpha() and line[1:4].isdigit())
         print(f"  {f.relative_to(ROOT)}  ({n} sentences)")
     print(f"  {guide.relative_to(ROOT)}")
-    print(f"  {page.relative_to(ROOT)}  <- send her this one")
+    print(f"  {page.relative_to(ROOT)}  <- web page")
+    print(f"  {booklet.relative_to(ROOT)}")
+    pdf = write_pdf(booklet)
+    if pdf:
+        print(f"  {pdf.relative_to(ROOT)}  <- print this and give it to her")

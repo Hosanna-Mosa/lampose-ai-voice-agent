@@ -5,7 +5,8 @@ Everything needed to record one speaker and train a voice model from it.
 | File | What it is |
 |---|---|
 | `script_te.tsv` | The 475 sentences, with IDs. The single source of truth — everything else is generated from it by `scripts/build_voice_script.py`. |
-| `script_te.html` | **Send her this.** The Telugu guide plus every sentence, correct shaping, large type, works on a phone. |
+| `LAMPOSE_recording_guide.pdf` | **Give her this.** 43-page A4 booklet: English instructions, then every sentence in Telugu. Print it or send the file — no software needed. |
+| `script_te.html` | The same thing as a web page, with the guide in Telugu. |
 | `speaker_guide_te.txt` | The same guide as plain text, for WhatsApp. |
 | `sections/`, `sessions/` | The sentences as plain text, per section and per sitting. |
 | `../../scripts/split_session_recording.py` | Cuts one section recording into one file per sentence. |
