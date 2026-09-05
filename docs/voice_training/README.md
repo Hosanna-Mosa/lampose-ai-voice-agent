@@ -4,7 +4,11 @@ Everything needed to record one speaker and train a voice model from it.
 
 | File | What it is |
 |---|---|
-| `script_te.tsv` | The 475 sentences to read, with IDs. Also the training metadata source. |
+| `script_te.tsv` | The 475 sentences, with IDs. The single source of truth — everything else is generated from it by `scripts/build_voice_script.py`. |
+| `script_te.html` | **Send her this.** The Telugu guide plus every sentence, correct shaping, large type, works on a phone. |
+| `speaker_guide_te.txt` | The same guide as plain text, for WhatsApp. |
+| `sections/`, `sessions/` | The sentences as plain text, per section and per sitting. |
+| `../../scripts/split_session_recording.py` | Cuts one section recording into one file per sentence. |
 | `../../scripts/check_voice_corpus.py` | Proves the script covers Telugu — run it if you edit the script. |
 | `../../scripts/check_recordings.py` | Checks the recordings before they go anywhere near training. |
 
@@ -84,28 +88,39 @@ trains on the clean version, and downsampling later is free. The reverse is not.
 
 ## 3. How to record
 
-**One sentence per file.** Not one long take — one file per line of the script.
-It makes retakes trivial and keeps the training data aligned.
+**One recording per section**, not per sentence. Creating, stopping, saving and
+naming 475 files is how a session with an inexperienced speaker falls apart —
+she presses record once, reads the whole section with a clear gap between
+sentences, and stops. `scripts/split_session_recording.py` cuts it up afterwards
+and names each piece by ID.
 
-Name each file after its ID in `script_te.tsv`:
+Her instructions are in `speaker_guide_te.txt` and at the top of
+`script_te.html`, in Telugu. The rhythm:
 
-```
-A001.wav   A002.wav   …   L025.wav
-```
+1. Press record, **2 seconds of silence**.
+2. Read one sentence.
+3. **3 seconds of silence** — count *one, two, three* — do **not** stop recording.
+4. Next sentence, and so on to the end of the section.
+5. 3 seconds of silence, then stop.
 
-Per sentence:
+That 3-second gap is what the splitter cuts on, so it matters more than it looks.
 
-1. Half a second of silence.
-2. Read the line, naturally, at a normal phone-call pace.
-3. Half a second of silence, then stop.
+**If she stumbles:** stop, say nothing (not even "sorry"), wait 3 seconds, and
+read the same sentence again from the beginning. The splitter will report one
+segment too many and show where — pass it `--skip N` to drop the bad take.
 
 **Read what is written.** If a word feels unnatural to her, do not improvise —
 note the ID and we will fix the script and re-record that line. The text must
 match the audio exactly or it teaches the model the wrong thing.
 
-**Redo the line if** she stumbles, mispronounces, runs two words together
-wrongly, breathes in the middle, or if a horn, door or phone buzz lands in it.
-Redoing takes ten seconds; a bad line hurts the model forever.
+Name each section recording after the section: `01_vowels.wav`, `02_consonants.wav`…
+Then:
+
+```bash
+./venv/bin/python scripts/split_session_recording.py 01_vowels.wav --section vowels
+# check the report, then:
+./venv/bin/python scripts/split_session_recording.py 01_vowels.wav --section vowels --write
+```
 
 ### Session plan
 

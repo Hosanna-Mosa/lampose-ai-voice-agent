@@ -1,10 +1,17 @@
 LAMPOSE — Telugu voice recording
 సంయుక్తాక్షరాలు — consonant clusters
-20 sentences
+20 sentences  —  about 3 నిమిషాలు
 
-Record ONE file per line. Name the file with the ID on the left: A001.wav
-Leave half a second of silence before and after each line.
-If you stumble, just record that line again.
+ఈ section మొత్తానికి ఒకే recording. ప్రతి వాక్యానికీ ఆపాల్సిన అవసరం లేదు.
+  1. Record నొక్కి, రెండు సెకన్లు ఏమీ మాట్లాడకండి.
+  2. ఒక వాక్యం చదవండి.
+  3. మూడు సెకన్లు ఆగండి (మనసులో: ఒకటి, రెండు, మూడు). Record ఆపవద్దు.
+  4. తర్వాతి వాక్యం చదవండి. ఇలాగే చివరి వరకు.
+  5. చివరిలో మూడు సెకన్లు ఆగి, Stop నొక్కండి.
+
+తప్పు జరిగితే: ఆగండి, ఏమీ చెప్పకండి, మూడు సెకన్లు ఆగి, అదే వాక్యం మళ్ళీ చదవండి.
+
+File పేరు: 03_clusters
 ------------------------------------------------------------
 
 B001   ప్రేమతో పలకరిస్తే ప్రతి పని సులభమవుతుంది.

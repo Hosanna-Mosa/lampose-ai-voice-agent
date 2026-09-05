@@ -84,13 +84,35 @@ def by_section(rows):
 
 HEADER = """LAMPOSE — Telugu voice recording
 {title}
-{count} sentences
+{count} sentences  —  about {mins}
 
-Record ONE file per line. Name the file with the ID on the left: A001.wav
-Leave half a second of silence before and after each line.
-If you stumble, just record that line again.
+ఈ section మొత్తానికి ఒకే recording. ప్రతి వాక్యానికీ ఆపాల్సిన అవసరం లేదు.
+  1. Record నొక్కి, రెండు సెకన్లు ఏమీ మాట్లాడకండి.
+  2. ఒక వాక్యం చదవండి.
+  3. మూడు సెకన్లు ఆగండి (మనసులో: ఒకటి, రెండు, మూడు). Record ఆపవద్దు.
+  4. తర్వాతి వాక్యం చదవండి. ఇలాగే చివరి వరకు.
+  5. చివరిలో మూడు సెకన్లు ఆగి, Stop నొక్కండి.
+
+తప్పు జరిగితే: ఆగండి, ఏమీ చెప్పకండి, మూడు సెకన్లు ఆగి, అదే వాక్యం మళ్ళీ చదవండి.
+
+File పేరు: {filename}
 {rule}
 """
+
+
+GAP_SECONDS = 3.0        # silence she leaves between sentences
+RETAKE_ALLOWANCE = 1.25  # a beginner re-reads roughly one line in five
+
+
+def timing(rows):
+    """Speech time and realistic wall-clock time for a set of sentences."""
+    speech = sum(len(r["text"]) for r in rows) / 11.0
+    wall = (speech + GAP_SECONDS * len(rows) + 2) * RETAKE_ALLOWANCE
+    return speech, wall
+
+
+def mins(secs):
+    return f"{secs/60:.0f} నిమిషాలు" if secs >= 90 else f"{secs:.0f} సెకన్లు"
 
 
 def write_text_files(sections):
@@ -103,9 +125,11 @@ def write_text_files(sections):
     for i, (name, rows) in enumerate(sections.items(), 1):
         title = TITLES.get(name, name)
         body = "\n\n".join(f"{r['id']}   {r['text']}" for r in rows)
+        _, wall = timing(rows)
         (sect_dir / f"{i:02d}_{name}.txt").write_text(
-            HEADER.format(title=title, count=len(rows), rule="-" * 60) + "\n" + body + "\n",
-            encoding="utf-8")
+            HEADER.format(title=title, count=len(rows), mins=mins(wall),
+                          filename=f"{i:02d}_{name}", rule="-" * 60)
+            + "\n" + body + "\n", encoding="utf-8")
 
     for n, (title, names) in enumerate(SESSIONS.items(), 1):
         parts, total = [], 0
@@ -116,13 +140,111 @@ def write_text_files(sections):
             total += len(rows)
             parts.append(f"\n\n{'=' * 60}\n{TITLES.get(name, name)}  ({len(rows)})\n{'=' * 60}\n\n"
                          + "\n\n".join(f"{r['id']}   {r['text']}" for r in rows))
+        rows_in = [r for nm in names for r in sections.get(nm, [])]
+        _, wall = timing(rows_in)
         (sess_dir / f"session{n}.txt").write_text(
-            HEADER.format(title=title, count=total, rule="=" * 60) + "".join(parts) + "\n",
-            encoding="utf-8")
+            HEADER.format(title=title, count=total, mins=mins(wall),
+                          filename="ఒక్కో section కి ఒక file — కింద చూడండి",
+                          rule="=" * 60) + "".join(parts) + "\n", encoding="utf-8")
     return sect_dir, sess_dir
 
 
+GUIDE = [
+    ("1. ఇది ఏమిటి?", [
+        "మీ గొంతుతో ఒక కంప్యూటర్ వాయిస్ తయారు చేస్తున్నాం.",
+        "మీరు ఈ వాక్యాలు చదివితే చాలు — ఇంకేమీ చేయనవసరం లేదు.",
+        "మీరు ఎలా మాట్లాడతారో కంప్యూటర్ కూడా అలాగే మాట్లాడుతుంది. అందుకే మీరు "
+        "మామూలుగా మాట్లాడితే చాలు.",
+    ]),
+    ("2. ఎక్కడ కూర్చోవాలి?", [
+        "చిన్న గది మంచిది — మంచం, కర్టెన్లు, బట్టలు ఉన్న గది అయితే ఇంకా మంచిది.",
+        "ఫ్యాన్ ఆఫ్ చేయండి. ఏసీ ఆఫ్ చేయండి. ఇది చాలా ముఖ్యం.",
+        "కిటికీలు, తలుపులు మూసేయండి. ఫోన్ సైలెంట్‌లో పెట్టండి.",
+        "హాల్‌లో గానీ, బాత్‌రూంలో గానీ వద్దు — అక్కడ ప్రతిధ్వని వస్తుంది.",
+    ]),
+    ("3. ఫోన్ ఎలా పెట్టుకోవాలి?", [
+        "Voice Recorder app తెరిచి, settings లో WAV అని పెట్టండి. MP3 వద్దు.",
+        "ఫోన్‌ని నోటికి ఒక జానెడు దూరంలో పెట్టండి — సుమారు ఇరవై సెంటీమీటర్లు.",
+        "నోటికి నేరుగా కాకుండా కొంచెం పక్కకి పెట్టండి.",
+        "ఫోన్‌ని చేతిలో పట్టుకోవద్దు. పుస్తకాల మీద పెట్టండి — చేతి శబ్దం రికార్డ్ అవుతుంది.",
+    ]),
+    ("4. ఎలా చదవాలి?", [
+        "ఫోన్‌లో ఒక మనిషితో మాట్లాడుతున్నట్టు చదవండి.",
+        "న్యూస్ చదివినట్టు వద్దు. నాటకం లాగా వద్దు.",
+        "మామూలుగా, మర్యాదగా, కొంచెం చిరునవ్వుతో.",
+        "మొదటి వాక్యం ఎలా చదివారో, చివరి వాక్యం కూడా సరిగ్గా అలాగే చదవాలి. "
+        "ఇది అన్నిటికంటే ముఖ్యం.",
+    ]),
+    ("5. రికార్డ్ ఎలా చేయాలి? — ఇది ముఖ్యమైన భాగం", [
+        "ఒక section మొత్తానికి ఒకే recording. ప్రతి వాక్యానికీ ఆపాల్సిన అవసరం లేదు.",
+        "మొదట Record బటన్ నొక్కండి.",
+        "మనసులో ఒకటి, రెండు అనుకోండి — ఏమీ మాట్లాడకండి. (రెండు సెకన్లు)",
+        "మొదటి వాక్యం చదవండి.",
+        "చదవడం అయ్యాక మనసులో ఒకటి, రెండు, మూడు అనుకోండి. (మూడు సెకన్లు) "
+        "Record ఆపవద్దు.",
+        "తర్వాతి వాక్యం చదవండి. ఇలాగే section మొత్తం చదవండి.",
+        "చివరిలో మూడు సెకన్లు ఆగి, అప్పుడు Stop నొక్కండి.",
+        "ఆ మూడు సెకన్ల నిశ్శబ్దం చాలా అవసరం — దాని సాయంతోనే మేము వాక్యాలను "
+        "విడివిడిగా వేరు చేస్తాం.",
+    ]),
+    ("6. తప్పు జరిగితే?", [
+        "కంగారు పడకండి. ఇది మామూలే.",
+        "ఆగిపోండి. సారీ అని కూడా చెప్పకండి — ఏమీ మాట్లాడకండి.",
+        "మనసులో ఒకటి, రెండు, మూడు అనుకోండి.",
+        "అదే వాక్యం మొదటి నుంచి మళ్ళీ చదవండి.",
+        "Record ఆపవద్దు. తప్పు భాగాన్ని మేము తీసేస్తాం.",
+    ]),
+    ("7. విశ్రాంతి", [
+        "ప్రతి పదిహేను నిమిషాలకు ఒకసారి మూడు నిమిషాలు ఆగండి.",
+        "గోరువెచ్చని నీరు తాగండి. చల్లని నీరు వద్దు.",
+        "ఒక రోజులో నలభై ఐదు నిమిషాల కంటే ఎక్కువ చేయవద్దు — గొంతు అలసిపోతుంది.",
+        "మొత్తం మూడు sessions. వేరే రోజుల్లో చేసినా ఫర్వాలేదు.",
+        "కానీ ప్రతిసారీ అదే గది, అదే ఫోన్, అదే దూరం. ఇది మారితే వాయిస్ మారిపోతుంది.",
+    ]),
+    ("8. ఫైల్ పేరు ఎలా పెట్టాలి?", [
+        "ప్రతి section కి ఒక file. ఆ section పేరే file పేరుగా పెట్టండి.",
+        "ఉదాహరణకు: 01_vowels, 02_consonants, 03_clusters — ఇలా.",
+        "కింద ప్రతి section పేరు ఇచ్చాం. అదే పేరు పెట్టండి.",
+    ]),
+    ("9. మొదలుపెట్టే ముందు — రెండు చిన్న పనులు", [
+        "మొదట పది సెకన్లు ఏమీ మాట్లాడకుండా record చేయండి. గది శబ్దం తెలుసుకోవడానికి. "
+        "దాని పేరు: room_tone",
+        "తర్వాత రెండు మూడు వాక్యాలు record చేసి, వెనక్కి విని చూడండి.",
+        "మీ గొంతు స్పష్టంగా వినిపిస్తే కొనసాగించండి. లేకపోతే ఫోన్ కొంచెం దగ్గరగా పెట్టండి.",
+    ]),
+]
+
+
+def write_guide_text(sections):
+    lines = ["LAMPOSE — రికార్డింగ్ గైడ్", "=" * 50, ""]
+    for title, points in GUIDE:
+        lines += [title, "-" * len(title)]
+        lines += [f"  • {p}" for p in points] + [""]
+    lines += ["10. ఎంత సమయం పడుతుంది?", "-" * 26, ""]
+    for i, (name, rows) in enumerate(sections.items(), 1):
+        speech, wall = timing(rows)
+        lines.append(f"  {i:02d}_{name:<12} {len(rows):3d} వాక్యాలు   సుమారు {mins(wall)}")
+    total_speech, total_wall = timing([r for rows in sections.values() for r in rows])
+    lines += ["", f"  మొత్తం: {total_wall/60:.0f} నిమిషాలు "
+                  f"(మూడు sessions గా విడగొట్టండి)", ""]
+    path = BASE / "speaker_guide_te.txt"
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
 def write_html(sections, rows):
+    guide_html = "".join(
+        f"<h3>{html.escape(t)}</h3><ul>"
+        + "".join(f"<li>{html.escape(p)}</li>" for p in pts) + "</ul>"
+        for t, pts in GUIDE)
+    total_speech, total_wall = timing(rows)
+    guide_html += "<h3>10. ఎంత సమయం పడుతుంది?</h3><table>"
+    for i, (name, items) in enumerate(sections.items(), 1):
+        _, wall = timing(items)
+        guide_html += (f"<tr><td>{i:02d}_{html.escape(name)}</td>"
+                       f"<td>{len(items)} వాక్యాలు</td><td>{mins(wall)}</td></tr>")
+    guide_html += (f"<tr><th>మొత్తం</th><th>{len(rows)} వాక్యాలు</th>"
+                   f"<th>{total_wall/60:.0f} నిమిషాలు</th></tr></table>")
     parts = [f"""<!doctype html>
 <html lang="te"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -145,14 +267,22 @@ def write_html(sections, rows):
         border-bottom: 1px solid rgba(128,128,128,.15); }}
   .id {{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .8rem;
          opacity: .55; min-width: 3.4rem; }}
+  .guide {{ background: rgba(180,83,9,.07); border-radius: 14px; padding: .2rem 1.2rem 1rem;
+            margin: 1.5rem 0 2rem; font-size: 1.15rem; line-height: 1.9; }}
+  .guide h3 {{ font-size: 1.1rem; margin: 1.4rem 0 .4rem; color: #b45309; }}
+  @media (prefers-color-scheme: dark) {{ .guide h3 {{ color: #f0a860; }} }}
+  .guide ul {{ margin: 0; padding-left: 1.2rem; }}
+  .guide li {{ display: list-item; border: 0; padding: .2rem 0; }}
+  .guide table {{ width: 100%; border-collapse: collapse; font-size: .95rem; margin-top: .5rem; }}
+  .guide td, .guide th {{ text-align: left; padding: .3rem .4rem;
+                          border-bottom: 1px solid rgba(128,128,128,.2); }}
   @media print {{ body {{ background: #fff; color: #000; font-size: 12pt; }}
                   h2 {{ page-break-after: avoid; }} li {{ page-break-inside: avoid; }} }}
 </style></head><body>
-<h1>LAMPOSE — Telugu voice recording script</h1>
-<p class="note">{len(rows)} sentences, about 29 minutes of speech.
-Record <strong>one file per line</strong> and name it with the code on the left
-(A001.wav). Half a second of silence before and after each line. Stumbled?
-Just record that line again.</p>"""]
+<h1>LAMPOSE — రికార్డింగ్</h1>
+<p class="note">మొత్తం {len(rows)} వాక్యాలు. కింద ముందుగా చిన్న గైడ్ ఉంది —
+ఒకసారి చదవండి. తర్వాత వాక్యాలు మొదలవుతాయి.</p>
+<div class="guide">{guide_html}</div>"""]
     for name, items in sections.items():
         parts.append(f"<h2>{html.escape(TITLES.get(name, name))} "
                      f"<span class='note'>({len(items)})</span></h2><ol>")
@@ -171,10 +301,12 @@ if __name__ == "__main__":
     sections = by_section(rows)
     sect_dir, sess_dir = write_text_files(sections)
     page = write_html(sections, rows)
+    guide = write_guide_text(sections)
     print(f"{len(rows)} sentences in {len(sections)} sections\n")
     print(f"  {len(list(sect_dir.glob('*.txt')))} section files -> {sect_dir.relative_to(ROOT)}/")
     for f in sorted(sess_dir.glob("*.txt")):
         n = sum(1 for line in f.read_text(encoding='utf-8').splitlines()
                 if line[:1].isalpha() and line[1:4].isdigit())
         print(f"  {f.relative_to(ROOT)}  ({n} sentences)")
-    print(f"  {page.relative_to(ROOT)}  <- open this in a browser")
+    print(f"  {guide.relative_to(ROOT)}")
+    print(f"  {page.relative_to(ROOT)}  <- send her this one")
