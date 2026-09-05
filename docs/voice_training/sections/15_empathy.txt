@@ -1,0 +1,18 @@
+LAMPOSE — Telugu voice recording
+సానుభూతి — understanding
+5 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F016   అర్థమైంది సర్, మీ ఇబ్బంది నాకు తెలుసు.
+
+F017   నిజమే సర్, మీరు చెప్పింది కరెక్ట్.
+
+F018   మీ పరిస్థితి అర్థం చేసుకోగలను సర్.
+
+F019   ఇబ్బంది పెట్టినందుకు క్షమించండి సర్.
+
+F020   ఫర్వాలేదు సర్, ఏమీ అనుకోవద్దు.

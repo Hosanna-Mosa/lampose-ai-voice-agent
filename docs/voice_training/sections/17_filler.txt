@@ -1,0 +1,20 @@
+LAMPOSE — Telugu voice recording
+ఆలోచిస్తూ — thinking sounds
+6 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F026   హా... అలాగే సర్.
+
+F027   ఊ... అర్థమైంది.
+
+F028   అలాగే సర్, ఒక్క క్షణం.
+
+F029   ఆహా, సరే సర్.
+
+F030   సరే సరే, చెప్పండి సర్.
+
+F031   హ్మ్... ఒక్క నిమిషం ఆగండి.

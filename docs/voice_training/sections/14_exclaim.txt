@@ -1,0 +1,18 @@
+LAMPOSE — Telugu voice recording
+ఆశ్చర్యం — surprise and delight
+5 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F011   చాలా బాగుంది సర్!
+
+F012   అద్భుతం! అలా అయితే చాలా మంచిది.
+
+F013   వావ్, అంత మంచి rating ఉందా!
+
+F014   అయ్యో, అలా జరిగిందా సర్!
+
+F015   భలే సర్, మీరు చెప్పింది నిజం.

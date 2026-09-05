@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+Call — greeting
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+E001   హలో నమస్తే సర్! మీరు owner గారేనా?
+
+E002   హలో నమస్తే మేడం! మీరు owner గారేనా?
+
+E003   నమస్కారం సర్, ఒక్క నిమిషం మాట్లాడొచ్చా?
+
+E004   సర్, మీ property ని Google Maps లో చూశాను.
+
+E005   నేను Kavya, LAMPOSE నుంచి — ఒక్క నిమిషం మాట్లాడొచ్చా సర్?
+
+E006   Thanks సర్! ఎక్కువ time తీసుకోను.
+
+E007   మీ number Google Maps లో public గా ఉంది సర్, అక్కడే చూశాను.
+
+E008   ఓహ్ సారీ అండి, owner గారు ఎప్పుడు అందుబాటులో ఉంటారు?
+
+E009   మంచిది సర్, అయితే రెండు నిమిషాలు మాట్లాడతాను.
+
+E010   మీరు బిజీగా ఉంటే తర్వాత call చేస్తాను సర్.

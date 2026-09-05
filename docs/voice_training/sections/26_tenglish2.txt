@@ -1,0 +1,48 @@
+LAMPOSE — Telugu voice recording
+More English words
+20 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+K001   మీ property ఇప్పుడే launch అయిన platform లో కనిపిస్తుంది సర్.
+
+K002   మా app త్వరలో Play Store లో కూడా వస్తుంది.
+
+K003   profile complete అయితే ఎక్కువ bookings వస్తాయి సర్.
+
+K004   మీ listing top లో కనిపించేలా చేస్తాం.
+
+K005   verification పూర్తయ్యాక live అవుతుంది సర్.
+
+K006   ఒక్క form fill చేస్తే చాలు సర్.
+
+K007   మీ email address ఉందా సర్?
+
+K008   address, pincode కూడా అవసరం అవుతుంది సర్.
+
+K009   amenities list చేస్తే customers కి clarity ఉంటుంది.
+
+K010   WiFi, parking, laundry వంటివి mention చేద్దాం సర్.
+
+K011   price range ఎంత పెడదాం సర్?
+
+K012   discount ఇవ్వాలంటే మీ ఇష్టం సర్.
+
+K013   review వస్తే మీ rating పెరుగుతుంది సర్.
+
+K014   support team ఎప్పుడూ అందుబాటులో ఉంటుంది.
+
+K015   మీకు training కూడా ఇస్తాం సర్, ఇబ్బంది ఉండదు.
+
+K016   demo చూపించమంటారా సర్?
+
+K017   screenshot పంపిస్తే అర్థమవుతుంది సర్.
+
+K018   link click చేస్తే అంతా కనిపిస్తుంది.
+
+K019   మీ hostel photos quality బాగుంటే bookings ఎక్కువ.
+
+K020   update ఏదైనా ఉంటే మాకు చెప్పండి సర్.

@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+Call — explaining LAMPOSE
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+E011   LAMPOSE ఒక online stay booking platform సర్.
+
+E012   customers మీ property ని online లో చూసి booking request పంపుతారు.
+
+E013   మీ property ని free గా add చేద్దామని call చేశాను.
+
+E014   ఎలాంటి charges లేకుండా మీ hostel ని list చేస్తాం.
+
+E015   booking request మీ WhatsApp కే వస్తుంది సర్.
+
+E016   మీరు చూసి accept చేస్తే చాలు, మిగతాది మేము చూసుకుంటాం.
+
+E017   కొత్త system ఏమీ నేర్చుకోవాల్సిన అవసరం లేదు సర్.
+
+E018   మీకు వచ్చే customers అదనంగా ఉంటారు అంతే.
+
+E019   మీ మామూలు business ఏ పనీ ఆగదు సర్.
+
+E020   onboarding మేము step by step guide చేస్తాం, చాలా simple.

@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+ద్విత్వాక్షరాలు — doubled consonants
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+B021   అమ్మ అన్నయ్యకు అక్కడ ఇల్లు చూపించింది.
+
+B022   ఒక్క నిమిషం ఆగితే చెప్పేస్తాను.
+
+B023   గట్టిగా చెప్పండి, సరిగ్గా వినపడట్లేదు.
+
+B024   ఎక్కువ ఖర్చు లేకుండా పని పూర్తయింది.
+
+B025   పిల్లలు ముద్దుగా మాట్లాడుతున్నారు.
+
+B026   చెప్పులు బయటే విడిచి రండి.
+
+B027   అట్టి పరిస్థితిలో ఏమీ చేయలేము.
+
+B028   నిన్నటి నుంచి ఇద్దరూ ఇక్కడే ఉన్నారు.
+
+B029   తప్పకుండా రేపు కలుద్దాం.
+
+B030   అప్పుడప్పుడు గుర్తుకు వస్తుంటారు.

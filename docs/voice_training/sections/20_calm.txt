@@ -1,0 +1,14 @@
+LAMPOSE — Telugu voice recording
+ప్రశాంతంగా — calm
+3 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F041   తొందర లేదు సర్, నెమ్మదిగా చెప్పండి.
+
+F042   ఆలోచించుకుని చెప్పండి సర్, సమయం ఉంది.
+
+F043   మీకు నచ్చకపోతే వద్దు అని చెప్పొచ్చు సర్.

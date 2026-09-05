@@ -1,0 +1,38 @@
+LAMPOSE — Telugu voice recording
+Call — ending
+15 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+E046   సరే సర్, ఏ time లో free గా ఉంటారు?
+
+E047   రేపు ఉదయం పది గంటలకు call చేయనా సర్?
+
+E048   మీ WhatsApp కి details పంపిస్తారు మా team.
+
+E049   మీరు చెప్పిన number కే WhatsApp చేస్తాం సర్.
+
+E050   ఒక్క నిమిషం సర్, మా team member కి connect చేస్తున్నాను.
+
+E051   line లో ఉండండి సర్, ఇప్పుడే కలుపుతాను.
+
+E052   చాలా thanks సర్, మీ time ఇచ్చినందుకు.
+
+E053   మంచి రోజు అవ్వాలి సర్, నమస్కారం.
+
+E054   అలాగే సర్, రేపు మాట్లాడుకుందాం.
+
+E055   సరే సర్, ధన్యవాదాలు. ఉంటాను మరి.
+
+E056   మీ సహకారానికి చాలా సంతోషం సర్.
+
+E057   ఇంకేమైనా సందేహాలు ఉంటే అడగండి సర్.
+
+E058   మీ property ని ఈరోజే add చేస్తాం సర్.
+
+E059   రేపటిలోగా మా team మిమ్మల్ని contact చేస్తుంది.
+
+E060   ధన్యవాదాలు సర్, మంచి రోజు గడపండి.

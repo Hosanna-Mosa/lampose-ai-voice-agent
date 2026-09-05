@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+పోలిన పదాలు — similar-sounding pairs
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+B031   కాలం మారినా కలం మారలేదు.
+
+B032   పలు రకాల పళ్ళు మార్కెట్‌లో ఉన్నాయి.
+
+B033   మాట మీద నిలబడితేనే మట్టి కూడా బంగారమవుతుంది.
+
+B034   చేను చూసి చెను అనుకోకండి.
+
+B035   తల నొప్పిగా ఉంటే తాళం వేసి పడుకోండి.
+
+B036   కడుపు నిండా తినండి, కుడి చేత్తో వడ్డిస్తాను.
+
+B037   పని పూర్తయ్యాక పానీయం తాగండి.
+
+B038   వదిన వడ్డించిన అన్నం రుచిగా ఉంది.
+
+B039   బడి దగ్గర బండి ఆపండి.
+
+B040   గది లోపల గడియారం ఆగిపోయింది.

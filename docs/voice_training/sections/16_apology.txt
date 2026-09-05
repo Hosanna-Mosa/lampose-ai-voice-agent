@@ -1,0 +1,18 @@
+LAMPOSE — Telugu voice recording
+క్షమాపణ — apologising
+5 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F021   సారీ సర్, సరిగ్గా వినపడలేదు.
+
+F022   క్షమించండి సర్, మళ్ళీ చెప్పగలరా?
+
+F023   నా తప్పే సర్, ఇంకోసారి చెబుతాను.
+
+F024   సారీ సర్, మీ మాట మధ్యలో ఆపాను.
+
+F025   క్షమించండి, కొంచెం నెమ్మదిగా చెబుతాను.

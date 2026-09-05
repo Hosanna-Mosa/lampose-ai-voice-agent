@@ -1,0 +1,16 @@
+LAMPOSE — Telugu voice recording
+వెచ్చగా — warmth
+4 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F037   మీతో మాట్లాడటం చాలా సంతోషంగా ఉంది సర్.
+
+F038   మీరు చాలా ఓపికగా విన్నారు, ధన్యవాదాలు.
+
+F039   మీ property చాలా బాగుంది సర్.
+
+F040   మీ లాంటి owners తోనే మాకు నమ్మకం.

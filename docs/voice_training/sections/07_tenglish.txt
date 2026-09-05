@@ -1,0 +1,98 @@
+LAMPOSE — Telugu voice recording
+English words in Telugu sentences
+45 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+D001   మీ property ని LAMPOSE లో free గా add చేద్దామని call చేశాను.
+
+D002   మా online stay booking platform ఇప్పుడే live లో ఉంది.
+
+D003   ప్రస్తుతం rooms గానీ beds గానీ ఖాళీగా ఉన్నాయా సర్?
+
+D004   మీ PG కి customers ఎలా వస్తున్నారు సర్?
+
+D005   brokers ద్వారానా, లేదా walk-ins గానా?
+
+D006   WhatsApp లో details పంపిస్తాం సర్.
+
+D007   ఈ number కే message వస్తుంది సర్.
+
+D008   మా team మీకు photos గురించి చెబుతారు.
+
+D009   onboarding చాలా simple సర్, మేము guide చేస్తాం.
+
+D010   website లో మీ hostel కనిపిస్తుంది.
+
+D011   booking request వచ్చినప్పుడు accept లేదా reject చేయొచ్చు.
+
+D012   Google Maps లో మీ hotel చూశాను సర్.
+
+D013   మంచి reviews ఉన్నాయి, rating కూడా బాగుంది.
+
+D014   To-Let properties కూడా add చేయొచ్చు సర్.
+
+D015   students, professionals, families — అందరూ చూస్తారు.
+
+D016   commission గురించి మా team clear గా చెబుతారు.
+
+D017   మీకు interest ఉంటే చెప్పండి సర్.
+
+D018   ఏ time లో call చేయాలో చెబితే అప్పుడే చేస్తాను.
+
+D019   ఒక్క నిమిషం మాట్లాడొచ్చా సర్?
+
+D020   నేను Kavya, LAMPOSE నుంచి call చేస్తున్నాను.
+
+D021   మీ property details మా team తీసుకుంటుంది.
+
+D022   LAMPOSE ఒక extra online channel మాత్రమే సర్.
+
+D023   మీ business మామూలుగానే నడుపుకోవచ్చు.
+
+D024   free గా ఉన్నప్పుడు ఒకసారి try చేసి చూడండి సర్.
+
+D025   online లో customers మిమ్మల్ని direct గా contact చేస్తారు.
+
+D026   మీ hostel లో ఎన్ని beds ఉన్నాయి సర్?
+
+D027   monthly rent ఎంత ఉంటుంది సర్?
+
+D028   advance ఎంత తీసుకుంటారు?
+
+D029   food facility కూడా ఉందా సర్?
+
+D030   AC rooms, non-AC rooms రెండూ ఉన్నాయా?
+
+D031   single sharing, double sharing ఉన్నాయా సర్?
+
+D032   location Kakinada లోనేనా సర్?
+
+D033   Rajahmundry లో మీ branch ఉందా?
+
+D034   Hyderabad లో కూడా property ఉందా సర్?
+
+D035   మీ WhatsApp number ఇదేనా సర్?
+
+D036   ఈ number కే WhatsApp లో పంపనా సర్?
+
+D037   మా team రేపు follow-up చేస్తుంది సర్.
+
+D038   registration కి ఎలాంటి charges లేవు సర్.
+
+D039   మీ photos మేమే upload చేస్తాం.
+
+D040   app లో కూడా చూడొచ్చు సర్.
+
+D041   customer booking confirm చేసిన తర్వాత మీకు తెలుస్తుంది.
+
+D042   payment direct గా మీకే వస్తుంది సర్.
+
+D043   ఎలాంటి contract లేదు సర్.
+
+D044   ఎప్పుడైనా stop చేసుకోవచ్చు.
+
+D045   మీ time ఇచ్చినందుకు చాలా thanks సర్.

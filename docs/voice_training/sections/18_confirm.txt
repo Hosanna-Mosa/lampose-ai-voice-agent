@@ -1,0 +1,18 @@
+LAMPOSE — Telugu voice recording
+ఖచ్చితత్వం — yes and no
+5 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F032   అవును సర్, కరెక్ట్.
+
+F033   లేదు సర్, అలా కాదు.
+
+F034   తప్పకుండా సర్.
+
+F035   ఖచ్చితంగా చేస్తాను సర్.
+
+F036   సరే సర్, అలాగే చేద్దాం.

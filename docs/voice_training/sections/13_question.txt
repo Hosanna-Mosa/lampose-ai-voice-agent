@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+ప్రశ్నలు — questions (voice rises)
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F001   మీరు ఏమంటారు సర్?
+
+F002   ఇది మీకు ఉపయోగపడుతుందా?
+
+F003   ఎప్పుడు కుదురుతుంది సర్?
+
+F004   ఎక్కడ ఉంది మీ property?
+
+F005   ఎందుకు అలా అనుకుంటున్నారు సర్?
+
+F006   ఎలా చేద్దాం సర్?
+
+F007   ఎవరితో మాట్లాడాలి సర్?
+
+F008   ఎంత సమయం పడుతుంది?
+
+F009   నిజంగానా సర్?
+
+F010   అలాగేనా సర్?

@@ -1,0 +1,28 @@
+LAMPOSE — Telugu voice recording
+Call — asking questions
+10 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+E021   ప్రస్తుతం మీ దగ్గర rooms ఖాళీగా ఉన్నాయా సర్?
+
+E022   ఎన్ని beds ఖాళీగా ఉన్నాయి సర్?
+
+E023   ఇప్పుడు customers మీకు ఎలా వస్తున్నారు?
+
+E024   మీ property PG నా, hostel నా, లేక To-Let నా సర్?
+
+E025   ఎక్కువగా students ఉంటారా, professionals ఉంటారా?
+
+E026   మీ area లో demand ఎలా ఉంది సర్?
+
+E027   సాధారణంగా ఎన్ని రోజుల్లో rooms నిండుతాయి?
+
+E028   మీరే owner గారా, లేక manager గారా సర్?
+
+E029   నిర్ణయం మీరే తీసుకుంటారా సర్?
+
+E030   ఇంకెవరితోనైనా మాట్లాడాలా సర్?

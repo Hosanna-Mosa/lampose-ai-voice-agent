@@ -112,11 +112,17 @@ Redoing takes ten seconds; a bad line hurts the model forever.
 475 sentences is about **29 minutes of speech**, which is roughly **70–90
 minutes** of real time. Split across **3 sessions of about 45 minutes**:
 
-| Session | Sections | Sentences |
-|---|---|---|
-| 1 | `vowels`, `consonants`, `clusters`, `gemination`, `minimal`, `rare` | ~175 |
-| 2 | `numbers`, `tenglish`, `tenglish2`, `natural` | ~150 |
-| 3 | `call_open` … `call_close`, `call_more`, `question` … `prosody`, `dense` | ~150 |
+| Session | What it covers | Sentences | File to read from |
+|---|---|---|---|
+| 1 | The sounds of Telugu | 135 | `sessions/session1.txt` |
+| 2 | Numbers, English words, everyday speech | 150 | `sessions/session2.txt` |
+| 3 | The call itself, and tone of voice | 190 | `sessions/session3.txt` |
+
+**Do not read from the TSV, and do not read from a terminal** — Telugu conjuncts
+and vowel signs do not render correctly there. Open `script_te.html` in a
+browser (phone or laptop, correct shaping, large type, works offline), or the
+plain `sessions/*.txt` files in any editor. Regenerate them after editing the
+script with `./venv/bin/python scripts/build_voice_script.py`.
 
 Water at room temperature, breaks every 15 minutes, and **the same room, same
 mic, same distance every session**. If session 2 is in a different room than

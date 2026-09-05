@@ -1,0 +1,12 @@
+LAMPOSE — Telugu voice recording
+ఉత్సాహంగా — energetic
+2 sentences
+
+Record ONE file per line. Name the file with the ID on the left: A001.wav
+Leave half a second of silence before and after each line.
+If you stumble, just record that line again.
+------------------------------------------------------------
+
+F044   చాలా బాగుంది సర్, వెంటనే మొదలుపెడదాం!
+
+F045   అయితే ఇప్పుడే మీ property add చేసేద్దాం సర్!
