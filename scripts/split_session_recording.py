@@ -67,6 +67,22 @@ def find_segments(x, sr):
     return [(a, b) for a, b in segs if b - a >= MIN_SPEECH]
 
 
+def _to_wav(src: Path):
+    """Convert a phone recording to WAV next to it. Returns the new path."""
+    import shutil as _sh
+    import subprocess
+    out = src.with_name(src.stem + "_converted.wav")
+    if _sh.which("afconvert"):                     # built into macOS
+        cmd = ["afconvert", "-f", "WAVE", "-d", "LEI16", str(src), str(out)]
+    elif _sh.which("ffmpeg"):
+        cmd = ["ffmpeg", "-y", "-i", str(src), "-c:a", "pcm_s16le", str(out)]
+    else:
+        return None
+    if subprocess.run(cmd, capture_output=True).returncode != 0 or not out.exists():
+        return None
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("recording")
@@ -97,10 +113,16 @@ def main():
 
     try:
         x, sr = sf.read(recording, dtype="float64", always_2d=True)
-    except Exception as e:
-        sys.exit(f"Cannot read '{recording}': {e}\n"
-                 f"WAV, FLAC, OGG and MP3 work. A phone's .m4a does not — "
-                 f"set the recorder app to WAV, or convert it first.")
+    except Exception as first_error:
+        # Phones hand back .m4a/.aac, which libsndfile cannot open. Converting
+        # is lossless-enough and beats telling her to record it all again.
+        converted = _to_wav(recording)
+        if converted is None:
+            sys.exit(f"Cannot read '{recording}': {first_error}\n"
+                     f"WAV, FLAC, OGG and MP3 work directly. This looks like an "
+                     f"m4a/aac and no converter (afconvert or ffmpeg) was found.")
+        print(f"  converted {recording.suffix} -> wav for reading")
+        x, sr = sf.read(converted, dtype="float64", always_2d=True)
     x = x.mean(axis=1)
 
     segs = find_segments(x, sr)

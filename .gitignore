@@ -12,3 +12,6 @@ ambient_cache/
 voice_cache/
 .DS_Store
 test voices/
+
+# Voice training audio — large, and personal recordings
+voice_data/
