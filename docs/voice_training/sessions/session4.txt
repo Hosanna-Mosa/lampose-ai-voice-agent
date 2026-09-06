@@ -1,0 +1,168 @@
+LAMPOSE — Telugu voice recording
+Session 4 — the partner app
+72 sentences  —  about 12 నిమిషాలు
+
+ఈ section మొత్తానికి ఒకే recording. ప్రతి వాక్యానికీ ఆపాల్సిన అవసరం లేదు.
+  1. Record నొక్కి, రెండు సెకన్లు ఏమీ మాట్లాడకండి.
+  2. ఒక వాక్యం చదవండి.
+  3. మూడు సెకన్లు ఆగండి (మనసులో: ఒకటి, రెండు, మూడు). Record ఆపవద్దు.
+  4. తర్వాతి వాక్యం చదవండి. ఇలాగే చివరి వరకు.
+  5. చివరిలో మూడు సెకన్లు ఆగి, Stop నొక్కండి.
+
+తప్పు జరిగితే: ఆగండి, ఏమీ చెప్పకండి, మూడు సెకన్లు ఆగి, అదే వాక్యం మళ్ళీ చదవండి.
+
+File పేరు: ఒక్కో section కి ఒక file — కింద చూడండి
+============================================================
+
+
+============================================================
+App — property ని add చేయడం  (35)
+============================================================
+
+M001   LAMPOSE partner app లో మీ property మొత్తం మీరే manage చేసుకోవచ్చు సర్.
+
+M002   App download చేసుకోవడానికి link మీ WhatsApp కి పంపిస్తాం.
+
+M003   Login చేయడానికి మీ phone number చాలు సర్, password అవసరం లేదు.
+
+M004   మీ number కి OTP వస్తుంది, అది enter చేస్తే login అయిపోతుంది.
+
+M005   మొదటిసారి login అయ్యాక profile complete చేయమని అడుగుతుంది.
+
+M006   మీ పేరు, property పేరు, address ఒక్కసారి ఇస్తే చాలు సర్.
+
+M007   Add Property అనే button నొక్కి మీ hostel details ఇవ్వండి.
+
+M008   Property type లో PG, hostel, To-Let, hotel — ఏదో ఒకటి select చేయండి.
+
+M009   మీ area, landmark, pincode కూడా ఇవ్వాలి సర్.
+
+M010   Map లో మీ location pin పెట్టండి, customers కి సులభంగా దొరుకుతుంది.
+
+M011   Rooms add చేయడానికి Add Room అని నొక్కండి సర్.
+
+M012   Single sharing, double sharing, triple sharing — ఏవి ఉన్నాయో select చేయండి.
+
+M013   AC rooms, non-AC rooms విడివిడిగా add చేయొచ్చు సర్.
+
+M014   ఒక్కో room కి ఎన్ని beds ఉన్నాయో enter చేయండి.
+
+M015   ప్రతి room కి rent ఎంతో మీరే పెట్టుకోవచ్చు సర్.
+
+M016   Advance ఎంత తీసుకుంటారో కూడా అక్కడే ఇవ్వండి.
+
+M017   ధర ఎప్పుడైనా మార్చుకోవచ్చు సర్, మమ్మల్ని అడగాల్సిన అవసరం లేదు.
+
+M018   Photos upload చేయడానికి camera icon నొక్కండి.
+
+M019   ఫోన్‌లో ఉన్న photos select చేసి upload చేసుకోవచ్చు సర్.
+
+M020   మంచి photos ఉంటే bookings రెట్టింపు అవుతాయి సర్.
+
+M021   Room photo, bathroom photo, బయటి photo — అన్నీ పెట్టండి.
+
+M022   ఏ photo ముందు కనిపించాలో cover photo గా select చేయండి.
+
+M023   Photo నచ్చకపోతే delete చేసి కొత్తది పెట్టుకోవచ్చు.
+
+M024   Amenities list లో మీ దగ్గర ఉన్నవాటిని tick చేయండి సర్.
+
+M025   WiFi, parking, hot water, power backup, CCTV — ఇవన్నీ ఉంటాయి.
+
+M026   Food facility ఉంటే mess timings కూడా ఇవ్వండి.
+
+M027   Laundry, housekeeping ఉంటే వాటిని కూడా tick చేయండి.
+
+M028   మీ rules కూడా app లో పెట్టుకోవచ్చు సర్.
+
+M029   Gate timing, visitors ని అనుమతిస్తారా లేదా — ఇవన్నీ చెప్పొచ్చు.
+
+M030   Boys only, girls only, families — ఎవరికి అనేది select చేయండి.
+
+M031   Verification కోసం ఒక ID proof, ఒక ownership document upload చేయాలి సర్.
+
+M032   Aadhaar card, current bill — ఏదైనా ఒకటి చాలు.
+
+M033   Verification అయ్యాక మీ listing కి verified badge వస్తుంది.
+
+M034   Verified properties ని customers ఎక్కువ నమ్ముతారు సర్.
+
+M035   అన్నీ పూర్తయ్యాక Submit నొక్కితే మీ property live అవుతుంది.
+
+============================================================
+App — రోజువారీ పనులు  (37)
+============================================================
+
+N001   Booking request వచ్చినప్పుడు app లో notification వస్తుంది సర్.
+
+N002   WhatsApp లో కూడా message వస్తుంది, మీరు miss అవ్వరు.
+
+N003   Request లో customer పేరు, ఎన్ని రోజులు, ఎప్పటి నుంచి — అన్నీ కనిపిస్తాయి.
+
+N004   మీకు నచ్చితే Accept నొక్కండి, లేకపోతే Reject నొక్కండి.
+
+N005   Reject చేసినందుకు ఎలాంటి penalty లేదు సర్.
+
+N006   Accept చేశాక customer number మీకు కనిపిస్తుంది.
+
+N007   నేరుగా customer కి call చేసి మాట్లాడుకోవచ్చు సర్.
+
+N008   Bookings tab లో రాబోయే check-ins అన్నీ కనిపిస్తాయి.
+
+N009   ఈరోజు ఎవరు వస్తున్నారో ఒక్క చూపులో తెలుస్తుంది.
+
+N010   Room నిండిపోతే availability off చేయండి సర్.
+
+N011   మళ్ళీ ఖాళీ అయ్యాక on చేస్తే సరిపోతుంది.
+
+N012   ఇది చేయకపోతే నిండిన room కి కూడా requests వస్తూ ఉంటాయి.
+
+N013   Calendar లో ఏ రోజు ఏ room ఖాళీగా ఉందో చూడొచ్చు సర్.
+
+N014   కొన్ని రోజులు block చేయాలంటే calendar లో select చేయండి.
+
+N015   ప్రస్తుతం ఎవరు ఉంటున్నారో tenants list లో ఉంటుంది సర్.
+
+N016   ఒక్కొక్కరి పేరు, number, ఎప్పుడు చేరారో కనిపిస్తుంది.
+
+N017   ఎవరైనా ఖాళీ చేస్తే check-out mark చేయండి.
+
+N018   Payments tab లో ఎంత వచ్చిందో, ఎంత రావాల్సి ఉందో కనిపిస్తుంది.
+
+N019   ఏ నెలలో ఎంత collect అయిందో report కూడా ఉంటుంది సర్.
+
+N020   Pending dues ఎవరివి ఉన్నాయో list గా చూపిస్తుంది.
+
+N021   Payment నేరుగా మీ bank account కే వస్తుంది సర్.
+
+N022   Account details ఒక్కసారి add చేస్తే సరిపోతుంది.
+
+N023   UPI number పెట్టుకున్నా పని అవుతుంది సర్.
+
+N024   Customers ఇచ్చిన reviews app లో చదువుకోవచ్చు.
+
+N025   ప్రతి review కి మీరు reply కూడా ఇవ్వొచ్చు సర్.
+
+N026   మంచి reviews వస్తే మీ rating పెరుగుతుంది.
+
+N027   Rating ఎక్కువ ఉంటే మీ property పైన కనిపిస్తుంది.
+
+N028   ఎంత మంది మీ listing చూశారో dashboard లో తెలుస్తుంది సర్.
+
+N029   ఈ నెల ఎన్ని enquiries వచ్చాయో కూడా చూడొచ్చు.
+
+N030   ఎవరైనా వచ్చి చూడాలంటే ముందే appointment పెట్టుకుంటారు.
+
+N031   Settings లో language మార్చుకోవచ్చు — తెలుగు లేదా English.
+
+N032   Notification sound off చేయాలంటే settings లో ఉంటుంది.
+
+N033   మీకు రెండు properties ఉంటే రెండూ ఒకే app లో manage చేయొచ్చు.
+
+N034   మీ manager కి కూడా access ఇవ్వొచ్చు సర్.
+
+N035   ఏదైనా doubt వస్తే Help లో మా number ఉంటుంది, call చేయండి.
+
+N036   App లో ఏ ఇబ్బంది వచ్చినా మా team వెంటనే సాయం చేస్తుంది.
+
+N037   App మొత్తం తెలుగులోనే ఉంటుంది సర్, ఇబ్బంది ఏమీ ఉండదు.

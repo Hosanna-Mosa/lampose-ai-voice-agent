@@ -34,6 +34,15 @@ walk-ins onboard onboarding details number team time interest rating reviews
 launch LAMPOSE request students professionals families commission simple guide
 live call message add confirm""".split()
 
+# The partner app's own vocabulary — she has to say these on calls too.
+APP_WORDS = """app download link login password OTP profile Add Property Add Room
+pincode landmark map pin sharing rent advance upload camera icon cover photo
+delete amenities WiFi parking CCTV mess laundry housekeeping rules Aadhaar
+verified badge Submit notification Accept Reject penalty check-in check-out
+availability calendar block tenants payments report dues bank account UPI
+reviews reply rating dashboard enquiries appointment settings language manager
+access Help support""".split()
+
 # Roughly how long a Telugu sentence takes to say, from measured Sarvam output:
 # ~11 characters per second at a natural pace.
 CHARS_PER_SECOND = 11.0
@@ -83,12 +92,13 @@ def report(rows, minimum):
     print("    most common: " + "  ".join(f"{c}×{n}" for c, n in clusters.most_common(8)))
 
     lower = text.lower()
-    missing_words = [w for w in LOANWORDS if w.lower() not in lower]
-    print(f"\n  English words the agent says: "
-          f"{len(LOANWORDS) - len(missing_words)}/{len(LOANWORDS)} present")
-    if missing_words:
-        ok = False
-        print(f"    MISSING  {' '.join(missing_words)}")
+    for label, words in (("English words the agent says", LOANWORDS),
+                         ("Partner-app words", APP_WORDS)):
+        missing_words = [w for w in words if w.lower() not in lower]
+        print(f"\n  {label}: {len(words) - len(missing_words)}/{len(words)} present")
+        if missing_words:
+            ok = False
+            print(f"    MISSING  {' '.join(missing_words)}")
 
     digits = re.findall(r"\d", text)
     print(f"\n  Digits in the script: {len(digits)} "

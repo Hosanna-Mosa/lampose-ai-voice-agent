@@ -4,8 +4,8 @@ Everything needed to record one speaker and train a voice model from it.
 
 | File | What it is |
 |---|---|
-| `script_te.tsv` | The 475 sentences, with IDs. The single source of truth — everything else is generated from it by `scripts/build_voice_script.py`. |
-| `LAMPOSE_recording_guide.pdf` | **Give her this.** 43-page A4 booklet: English instructions, then every sentence in Telugu. Print it or send the file — no software needed. |
+| `script_te.tsv` | The 550 sentences, with IDs. The single source of truth — everything else is generated from it by `scripts/build_voice_script.py`. |
+| `LAMPOSE_recording_guide.pdf` | **Give her this.** 47-page A4 booklet: English instructions, then every sentence in Telugu. Print it or send the file — no software needed. |
 | `script_te.html` | The same thing as a web page, with the guide in Telugu. |
 | `speaker_guide_te.txt` | The same guide as plain text, for WhatsApp. |
 | `sections/`, `sessions/` | The sentences as plain text, per section and per sitting. |
@@ -42,7 +42,7 @@ Direction to give her, in her words:
 - Polite and warm, never sing-song, never over-excited.
 - Native Telugu speaker, comfortable mixing everyday English words the way
   people actually do — *property*, *booking*, *WhatsApp* stay English.
-- Same energy on sentence 1 and sentence 475. **Consistency beats brilliance.**
+- Same energy on sentence 1 and sentence 550. **Consistency beats brilliance.**
   A model trained on a voice that drifts sounds unstable.
 
 What to avoid: dramatic emphasis, whispering, shouting, smiling too hard
@@ -90,7 +90,7 @@ trains on the clean version, and downsampling later is free. The reverse is not.
 ## 3. How to record
 
 **One recording per section**, not per sentence. Creating, stopping, saving and
-naming 475 files is how a session with an inexperienced speaker falls apart —
+naming 550 files is how a session with an inexperienced speaker falls apart —
 she presses record once, reads the whole section with a clear gap between
 sentences, and stops. `scripts/split_session_recording.py` cuts it up afterwards
 and names each piece by ID.
@@ -125,14 +125,15 @@ Then:
 
 ### Session plan
 
-475 sentences is about **29 minutes of speech**, which is roughly **70–90
-minutes** of real time. Split across **3 sessions of about 45 minutes**:
+550 sentences is about **35 minutes of speech**, which is roughly **90
+minutes** of real time. Split across **4 sittings of about 25–45 minutes**:
 
 | Session | What it covers | Sentences | File to read from |
 |---|---|---|---|
-| 1 | The sounds of Telugu | 135 | `sessions/session1.txt` |
+| 1 | The sounds of Telugu | 138 | `sessions/session1.txt` |
 | 2 | Numbers, English words, everyday speech | 150 | `sessions/session2.txt` |
 | 3 | The call itself, and tone of voice | 190 | `sessions/session3.txt` |
+| 4 | The partner app — everything an owner does in it | 72 | `sessions/session4.txt` |
 
 **Do not read from the TSV, and do not read from a terminal** — Telugu conjuncts
 and vowel signs do not render correctly there. Open `script_te.html` in a
@@ -152,6 +153,7 @@ It is not random sentences. Sections, and what each is for:
 
 | Section | Purpose |
 |---|---|
+| `app_setup`, `app_daily` | The partner app's own vocabulary — login, OTP, upload, availability, calendar, dues, UPI, dashboard. She has to say all of it on calls, and none of it appears anywhere else in the script |
 | `vowels`, `consonants` | Every Telugu vowel and consonant, several times each |
 | `rare` | The letters that almost never occur naturally — ఔ, ౌ, ఋ, ృ, ః, ఛ, ఝ, ఞ, ఠ, ఢ, ఙ. Without these the model guesses when it meets them |
 | `clusters`, `gemination`, `minimal` | Conjunct consonants, doubled consonants, and near-identical word pairs |

@@ -33,6 +33,8 @@ SESSIONS = OrderedDict([
      ["call_open", "call_pitch", "call_qual", "objection", "call_close", "call_more",
       "question", "exclaim", "empathy", "apology", "filler", "confirm",
       "warm", "calm", "energetic", "prosody", "dense"]),
+    ("Session 4 — the partner app",
+     ["app_setup", "app_daily"]),
 ])
 
 TITLES = {
@@ -63,6 +65,8 @@ TITLES = {
     "energetic": "ఉత్సాహంగా — energetic",
     "prosody": "భావ ప్రకటన — expression",
     "dense": "కఠినమైన వాక్యాలు — dense sentences",
+    "app_setup": "App — property ని add చేయడం",
+    "app_daily": "App — రోజువారీ పనులు",
 }
 
 # Telugu first, then whatever the reader's machine has. Works offline.
@@ -461,6 +465,12 @@ def write_pdf(booklet):
 if __name__ == "__main__":
     rows = load()
     sections = by_section(rows)
+    # A section missing from SESSIONS would silently never be recorded.
+    assigned = {n for names in SESSIONS.values() for n in names}
+    orphans = [n for n in sections if n not in assigned]
+    if orphans:
+        raise SystemExit(f"These sections are in no session, so nobody would ever "
+                         f"record them: {', '.join(orphans)}. Add them to SESSIONS.")
     sect_dir, sess_dir = write_text_files(sections)
     page = write_html(sections, rows)
     guide = write_guide_text(sections)
