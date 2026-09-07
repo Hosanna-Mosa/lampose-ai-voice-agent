@@ -67,6 +67,104 @@ def find_segments(x, sr):
     return [(a, b) for a, b in segs if b - a >= MIN_SPEECH]
 
 
+def align_to_script(x, sr, expected_secs, min_pause=0.12):
+    """Cut into exactly len(expected_secs) pieces, using the script as a guide.
+
+    Silence alone stops working once the speaker pauses for 0.4s between
+    sentences and 0.4s for breath inside them — no single threshold separates
+    those, and for one section no threshold gave the right count at all.
+
+    But we know how long each sentence *should* take (characters / 11). So:
+    take every pause as a candidate boundary, then choose the combination that
+    best matches the expected run of durations. Dynamic programming, so it is
+    the globally best fit rather than a greedy walk.
+    """
+    win = max(1, int(sr * 0.02))
+    frames = x[:len(x) // win * win].reshape(-1, win)
+    level = np.sqrt((frames ** 2).mean(axis=1))
+    thresh = max(float(np.percentile(level, 20)) * 3.0,
+                 float(np.percentile(level, 95)) * 0.06, 1e-5)
+    loud = level > thresh
+    step = win / sr
+
+    # Speech time between two frames, in O(1).
+    cum = np.concatenate([[0.0], np.cumsum(loud) * step])
+    speech = lambda i, j: cum[j] - cum[i]
+
+    # Candidate boundaries: the middle of every pause long enough to be one.
+    # Remember how long each pause was — a long pause is far more likely to be
+    # a sentence end than a breath, and ignoring that was what put the first
+    # attempt one sentence out of step.
+    cands, pause_len, run = [0], [99.0], 0
+    for i, is_loud in enumerate(loud):
+        if not is_loud:
+            run += 1
+        else:
+            if run * step >= min_pause:
+                cands.append(i - run // 2)
+                pause_len.append(run * step)
+            run = 0
+    cands.append(len(loud))
+    pause_len.append(99.0)
+
+    n, m = len(expected_secs), len(cands)
+    if m < n + 1:
+        return None                      # fewer pauses than sentences: unsalvageable
+
+    # Her real speaking rate, not an assumed one: total speech over total text.
+    total_speech = speech(0, len(loud))
+    scale = total_speech / max(sum(expected_secs), 1e-6)
+    want_secs = [e * scale for e in expected_secs]
+
+    # A pause at the 80th percentile or longer is "clearly a sentence end".
+    real = [p for p in pause_len if p < 99.0] or [min_pause]
+    long_pause = float(np.percentile(real, 80))
+    pause_bonus = [0.0 if p >= long_pause else 0.6 * (1 - p / long_pause)
+                   for p in pause_len]
+
+    INF = float("inf")
+    cost = np.full((n + 1, m), INF)
+    back = np.zeros((n + 1, m), dtype=int)
+    cost[0][0] = 0.0
+    for k in range(1, n + 1):
+        want = want_secs[k - 1]
+        for j in range(k, m):
+            best, arg = INF, -1
+            # cutting at j costs more when j is a short pause
+            penalty = pause_bonus[j] if j < m - 1 else 0.0
+            for i in range(k - 1, j):
+                if cost[k - 1][i] == INF:
+                    continue
+                got = speech(cands[i], cands[j])
+                if got < 0.15:           # a piece with no speech in it
+                    continue
+                c = cost[k - 1][i] + abs(got - want) / want + penalty
+                if c < best:
+                    best, arg = c, i
+            cost[k][j] = best
+            back[k][j] = arg
+
+    end = int(np.argmin(cost[n]))
+    if cost[n][end] == INF:
+        return None
+    bounds, k = [end], n
+    while k > 0:
+        end = back[k][end]
+        bounds.append(end)
+        k -= 1
+    bounds.reverse()
+
+    # Trim each piece to where speech actually starts and stops inside it.
+    out = []
+    for a, b in zip(bounds, bounds[1:]):
+        lo, hi = cands[a], cands[b]
+        idx = np.nonzero(loud[lo:hi])[0]
+        if len(idx) == 0:
+            return None
+        out.append(((lo + idx[0]) * step, (lo + idx[-1] + 1) * step))
+    return out
+
+
 def _to_wav(src: Path):
     """Convert a phone recording to WAV next to it. Returns the new path."""
     import shutil as _sh
