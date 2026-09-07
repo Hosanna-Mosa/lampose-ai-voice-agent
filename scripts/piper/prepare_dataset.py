@@ -2,7 +2,7 @@
 
     ./venv/bin/python scripts/piper/prepare_dataset.py
 
-Produces voice_data/piper/ — wavs at 16 kHz mono plus metadata.csv in the
+Produces voice_data/piper/ — wavs at 22.05 kHz mono plus metadata.csv in the
 LJSpeech format Piper expects (id|text). Zip that folder and upload it to Colab.
 
 Three things happen to the audio and text on the way:
@@ -10,9 +10,10 @@ Three things happen to the audio and text on the way:
 * **English is rewritten in Telugu script.** espeak-ng switches to English
   phonemes for Latin script — /pɹˈɒpəti/ — but she said ప్రాపర్టీ. Training on
   that mismatch would teach the wrong sounds on every code-mixed line.
-* **16 kHz, mono.** Piper's `low` quality trains at 16 kHz. A phone call is
-  8 kHz, so nothing above that survives anyway; a bigger model would only cost
-  CPU on the VPS for fidelity no owner can hear.
+* **22.05 kHz, mono.** 16 kHz would suit a phone line better, but the current
+  Piper trainer only supports `medium` checkpoints without extra configuration,
+  and those are 22.05 kHz. Matching the checkpoint matters more than matching
+  the phone: we measure the CPU cost afterwards and can revisit.
 * **Levels matched.** Peak-normalised per clip so the model is not also
   learning that some sentences were louder than others.
 """
@@ -33,7 +34,7 @@ from translit import MAP                                        # noqa: E402
 TSV = ROOT / "docs" / "voice_training" / "script_te.tsv"
 CLIPS = ROOT / "voice_data" / "wavs"
 OUT = ROOT / "voice_data" / "piper"
-TARGET_SR = 16000
+TARGET_SR = 22050
 PEAK = 0.95
 
 _WORD = re.compile(r"[A-Za-z][A-Za-z\-]*")
@@ -105,7 +106,8 @@ def main():
         text, unknown = to_telugu(row["text"])
         for w in unknown:
             unknown_all[w] = unknown_all.get(w, 0) + 1
-        lines.append(f"{clip.stem}|{text}")
+        # the trainer expects the file name, extension included
+        lines.append(f"{clip.stem}.wav|{text}")
         total += len(pcm) / TARGET_SR
 
     (OUT / "metadata.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
